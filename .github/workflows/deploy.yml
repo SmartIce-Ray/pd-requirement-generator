@@ -18,5 +18,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # 锁 wrangler 4.x：action 默认装的 3.90 不支持 wrangler.jsonc（3.91+ 才支持），
+          # 会读不到下面的 pages_build_output_dir 而报“必须指定资源目录”。
+          wranglerVersion: '4.84.0'
           # wrangler.jsonc 里 pages_build_output_dir=app，只上线前端；--branch=main = 生产
           command: pages deploy --branch=main
