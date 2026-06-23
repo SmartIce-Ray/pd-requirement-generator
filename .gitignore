@@ -15,3 +15,7 @@
 .remember/
 .playwright-mcp/
 .claude/
+
+# Node / wrangler
+node_modules/
+.wrangler/

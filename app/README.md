@@ -25,7 +25,7 @@
 
 ## 以后上云（留好的结构）
 
-全部是静态文件，直接把 `app/` 丢到 Vercel / Netlify / Cloudflare Pages 即可（前端零改动）。要做"共享需求库 / AI 辅助"时：`store.js` 的导出 JSON 即后端记录格式，把"下载 JSON"换成 `POST /api/...`；AI 在 `①②` 文本框旁加按钮调 `/api/assist`（走 OpenRouter）。
+全部是静态文件，直接把 `app/` 丢到 Vercel / Netlify / Cloudflare Pages 即可（前端零改动）。公开部署后，非本机用户电脑上没有品牌文件夹，授权后工具会在其所选目录新建「品牌/需求/」写入（要"汇到一处给你看"需做后端 / 共享需求库）。要做"共享需求库 / AI 辅助"时：`store.js` 的导出 JSON 即后端记录格式，把"下载 JSON"换成 `POST /api/...`；AI 在 `①②` 文本框旁加按钮调 `/api/assist`（走 OpenRouter）。
 
 ## 文件结构
 
