@@ -1,0 +1,22 @@
+name: Deploy to Cloudflare Pages
+
+# push 到 main 自动部署到生产；也支持在 Actions 页手动触发。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # wrangler.jsonc 里 pages_build_output_dir=app，只上线前端；--branch=main = 生产
+          command: pages deploy --branch=main
