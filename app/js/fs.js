@@ -1,4 +1,4 @@
-// PPT 落地：File System Access API 自动写进 品牌/需求/<需求名>/，否则降级浏览器下载。
+// PPT 落地：File System Access API 自动写进 品牌/需求/，否则降级浏览器下载。
 // 命名规范：品牌-需求名-日期.pptx
 window.RD = window.RD || {};
 (function () {
