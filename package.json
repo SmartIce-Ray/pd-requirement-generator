@@ -1,0 +1,13 @@
+{
+  "name": "pd-requirement-generator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "产品研发需求生成器 — 选品牌/传参考图/填需求，一键生成需求 PPT（纯静态前端）",
+  "scripts": {
+    "deploy:preview": "wrangler pages deploy --branch=preview",
+    "deploy": "wrangler pages deploy --branch=main"
+  },
+  "devDependencies": {
+    "wrangler": "^4.84.0"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  // Cloudflare Pages 配置：只把 app/ 作为站点根上线（品牌内容文件夹不在其中，不会被部署）。
+  "name": "pd-requirement-generator",
+  "pages_build_output_dir": "app"
+}
