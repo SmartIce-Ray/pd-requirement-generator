@@ -9,5 +9,9 @@ export async function onRequestGet(context) {
   obj.writeHttpMetadata(headers);
   headers.set("etag", obj.httpEtag);
   headers.set("cache-control", "private, max-age=86400");
+  // 纵深防御：即便存了异常 content-type 也不让浏览器嗅探/执行为脚本。
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("content-security-policy", "default-src 'none'; img-src 'self'; sandbox");
+  headers.set("content-disposition", `inline; filename="${params.key}"`);
   return new Response(obj.body, { headers });
 }

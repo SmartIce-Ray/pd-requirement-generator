@@ -4,6 +4,9 @@ import { genId } from "../_lib/ids.js";
 import { validateBrands, buildListQuery, parseRow } from "../_lib/query.js";
 import { BRAND_NAMES } from "../_lib/brands.js";
 
+// 严格图片白名单（排除 SVG —— 可内嵌脚本，储存型 XSS 向量）。
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -23,6 +26,8 @@ export async function onRequestPost(context) {
 
   const image = form.get("image");
   if (!image || typeof image === "string") return fail("缺少图片", 400);
+  const imageType = image.type;
+  if (!ALLOWED_IMAGE_TYPES.has(imageType)) return fail("不支持的图片类型（仅 JPEG/PNG/WebP/GIF）", 415);
 
   const brands = JSON.stringify(validateBrands(form.get("brands")));
   const categoryRaw = form.get("category");
@@ -30,7 +35,6 @@ export async function onRequestPost(context) {
   const notes = form.get("notes") ? String(form.get("notes")) : "";
 
   const id = genId();
-  const imageType = image.type || "image/jpeg";
   const buf = await image.arrayBuffer();
   await env.IMAGES.put(id, buf, { httpMetadata: { contentType: imageType } });
 
