@@ -39,7 +39,6 @@ window.RD = window.RD || {};
     return b;
   }
   function pickedBrands(container) { return $$(".brand-opt.sel", container).map((b) => b.dataset.name).filter(Boolean); }
-  function $$in(sel, root) { return Array.from(root.querySelectorAll(sel)); }
 
   // ---------- 视图路由 ----------
   function setView(view) {
@@ -188,14 +187,14 @@ window.RD = window.RD || {};
     };
     const btn = $("#detailSave"); btn.disabled = true;
     try { await api.update(detailItem.id, patch); closeModal("#detailModal"); toast("已保存"); loadGallery(); }
-    catch (e) { toast(e.message || "保存失败", true); }
+    catch (e) { toast(e.message || "保存失败", true); if (e.status === 404) { closeModal("#detailModal"); loadGallery(); } }
     finally { btn.disabled = false; }
   }
   async function deleteDetail() {
     if (!detailItem) return;
     if (!confirm("删除这条选品？图片也会一并删除。")) return;
     try { await api.remove(detailItem.id); closeModal("#detailModal"); toast("已删除"); loadGallery(); }
-    catch (e) { toast(e.message || "删除失败", true); }
+    catch (e) { toast(e.message || "删除失败", true); if (e.status === 404) { closeModal("#detailModal"); loadGallery(); } }
   }
 
   // ---------- 上传 ----------
@@ -252,7 +251,7 @@ window.RD = window.RD || {};
     const brands = pickedBrands($("#batchBrands"));
     const cat = $("#batchCat").value;
     upCards.forEach((c) => {
-      if (brands.length) $$in(".brand-opt", c.brandsEl).forEach((b) => {
+      if (brands.length) $$(".brand-opt", c.brandsEl).forEach((b) => {
         const on = brands.includes(b.dataset.name);
         b.classList.toggle("sel", on); b.setAttribute("aria-pressed", String(on));
       });
@@ -265,6 +264,7 @@ window.RD = window.RD || {};
     if (!ready.length) return;
     const btn = $("#upSaveBtn"); btn.disabled = true;
     let done = 0, fail = 0;
+    const failMsgs = [];
     for (const c of ready) {
       $("#upStatus").textContent = `保存中 ${done + fail + 1} / ${ready.length}`;
       const fd = new FormData();
@@ -273,11 +273,14 @@ window.RD = window.RD || {};
       fd.append("category", c.catEl.value || "");
       fd.append("notes", c.notesEl.value || "");
       try { await api.create(fd); done++; }
-      catch (e) { fail++; if (e.status === 401) { showLogin(); break; } }
+      catch (e) {
+        fail++; failMsgs.push(e && e.message); console.error("upload_create_failed", e);
+        if (e.status === 401) { showLogin(); break; }
+      }
     }
     btn.disabled = false;
     closeModal("#uploadModal");
-    toast(fail ? `已存 ${done} 条，${fail} 条失败` : `已存 ${done} 条灵感`, !!fail);
+    toast(fail ? `已存 ${done} 条，${fail} 条失败（${failMsgs[0] || "未知原因"}）` : `已存 ${done} 条灵感`, !!fail);
     loadGallery();
   }
 
@@ -333,5 +336,5 @@ window.RD = window.RD || {};
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 
-  window.RD.library = { reload: loadGallery, setView };
+  window.RD.library = { reload: loadGallery, setView, getConfig: () => config };
 })();

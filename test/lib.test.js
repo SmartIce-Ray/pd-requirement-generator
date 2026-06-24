@@ -56,6 +56,8 @@ describe("query", () => {
     expect(validateBrands("not json")).toEqual([]);
     expect(validateBrands(null)).toEqual([]);
     expect(validateBrands(123)).toEqual([]);
+    expect(validateBrands([null, 123, "野百灵", {}])).toEqual(["野百灵"]); // 混杂数组净化
+    expect(validateBrands('"野百灵"')).toEqual([]); // JSON 解析成字符串不是数组
   });
   it("buildListQuery 无筛选", () => {
     const { sql, params } = buildListQuery({});
@@ -75,6 +77,18 @@ describe("query", () => {
     expect(sql).toContain("category IS NULL");
     expect(sql).not.toContain("category = ?");
     expect(params).toEqual([]);
+  });
+  it("buildListQuery 仅品牌：LIKE 引号锚定 + 参数化(不拼原文)", () => {
+    const { sql, params } = buildListQuery({ brand: "野百灵" });
+    expect(params).toEqual(['%"野百灵"%']);
+    expect(sql).toContain("brands LIKE ?");
+    expect(sql).not.toContain("野百灵");
+  });
+  it("buildListQuery 品牌+未整理 并存", () => {
+    const { sql, params } = buildListQuery({ brand: "野百灵", untagged: true });
+    expect(sql).toContain("brands LIKE ?");
+    expect(sql).toContain("category IS NULL");
+    expect(params).toEqual(['%"野百灵"%']);
   });
   it("parseRow 解析 brands、不外泄 image_key", () => {
     const row = { id: "x", image_key: "x", image_type: "image/jpeg", brands: '["野百灵"]', category: null, notes: "hi", created_at: 123 };

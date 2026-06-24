@@ -18,9 +18,11 @@
   function fmtDate(d) { d = d || new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
   // —— 文本测量（CJK 约 1 字 1em）——
+  // cpl=一行能放多少字；保守估行：减文本框内边距(~0.3in) + 0.88 安全系数，宁可略小不溢出
+  // （不同字体/渲染器换行点不一）。
   function cpl(w, pt) { return Math.max(1, Math.floor((Math.max(0.5, w - 0.3) * 72) / pt * 0.88)); }
   function nlines(t, w, pt) { return String(t == null ? "" : t).split("\n").reduce((a, s) => a + Math.max(1, Math.ceil(s.length / cpl(w, pt))), 0); }
-  function textH(t, w, pt, lsp) { return nlines(t, w, pt) * (pt / 72) * (lsp || 1.32); }
+  function textH(t, w, pt, lsp) { return nlines(t, w, pt) * (pt / 72) * (lsp || 1.32); } // 文本块所需高度(英寸)
   function fitH(t, w, h, maxPt, minPt, lsp) { for (let pt = maxPt; pt >= minPt; pt--) { if (textH(t, w, pt, lsp) <= h) return pt; } return minPt; }
   function fitFont(t, w, maxLines, maxPt, minPt) { for (let pt = maxPt; pt >= minPt; pt--) { if (nlines(t, w, pt) <= maxLines) return pt; } return minPt; }
   function fitBox(box, img) {

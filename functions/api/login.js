@@ -1,5 +1,5 @@
 // 登录：校验密码 → 设会话 cookie。
-import { sessionToken, sessionCookie } from "../_lib/auth.js";
+import { sessionToken, sessionCookie, timingSafeEqual } from "../_lib/auth.js";
 import { json, fail } from "../_lib/respond.js";
 
 export async function onRequestPost(context) {
@@ -12,8 +12,10 @@ export async function onRequestPost(context) {
   } catch {
     return fail("请求格式错误", 400);
   }
-  if (password !== env.APP_PASSWORD) return fail("密码错误", 401);
-  const token = await sessionToken(env.APP_PASSWORD);
+  // 时间安全比对：比对定长令牌（HMAC，64 hex），不泄露密码长度，避免短路 !== 的旁路。
+  const expected = await sessionToken(env.APP_PASSWORD);
+  const submitted = await sessionToken(password);
+  if (!timingSafeEqual(submitted, expected)) return fail("密码错误", 401);
   const secure = new URL(request.url).protocol === "https:";
-  return json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, { secure }) });
+  return json({ ok: true }, 200, { "Set-Cookie": sessionCookie(expected, { secure }) });
 }

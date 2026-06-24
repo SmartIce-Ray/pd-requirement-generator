@@ -36,13 +36,23 @@ window.RD = window.RD || {};
 
   // ---------- 草稿 ----------
   function loadDrafts() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || {}; } catch { return {}; } }
-  function saveDrafts(m) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(m)); } catch (_) {} }
+  let draftWarned = false;
+  function saveDrafts(m) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(m)); }
+    catch (e) {
+      console.warn("draft_save_failed", e);
+      if (!draftWarned) { draftWarned = true; toast("草稿无法自动保存（浏览器存储受限），请尽快生成", true); }
+    }
+  }
+  // 品牌/分类的真源：优先用 library 从 /api/config 拿到的（后端单一真源 + 含自定义分类）。
+  function cfgBrands() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.brands) || window.RD.brands || []; }
+  function cfgCatNames() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.categories) ? c.categories.map((x) => x.name) : (S().categories || []); }
   let persistTimer;
   function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
       const m = loadDrafts();
-      blocks.forEach((b) => { m[b.pickId] = { reqName: b.reqName, desc: b.desc, present: b.present, avoidOverall: b.avoidOverall, category: b.category, flavors: b.flavors, flavorNote: b.flavorNote, extras: b.extras, owner: b.owner, launchTime: b.launchTime }; });
+      blocks.forEach((b) => { m[b.pickId] = { reqName: b.reqName, brand: b.brand, desc: b.desc, present: b.present, avoidOverall: b.avoidOverall, category: b.category, flavors: b.flavors, flavorNote: b.flavorNote, extras: b.extras, owner: b.owner, launchTime: b.launchTime }; });
       saveDrafts(m);
     }, 500);
   }
@@ -104,7 +114,7 @@ window.RD = window.RD || {};
     });
     return row;
   }
-  function S_brands() { return (window.RD.brands || []); }
+  function S_brands() { return cfgBrands(); }
 
   function extrasBox(b) {
     const box = el("div", "grid2");
@@ -205,7 +215,9 @@ window.RD = window.RD || {};
     // 品类
     block.appendChild(fieldLabel("品类"));
     const cat = el("select"); cat.appendChild(option("", "请选择"));
-    S().categories.forEach((c) => cat.appendChild(option(c, c)));
+    const catNames = cfgCatNames();
+    catNames.forEach((c) => cat.appendChild(option(c, c)));
+    if (b.category && !catNames.includes(b.category)) cat.appendChild(option(b.category, b.category)); // 保留自定义/已删分类
     cat.value = b.category || "";
     const extrasWrap = el("div");
     extrasWrap.appendChild(extrasBox(b));
