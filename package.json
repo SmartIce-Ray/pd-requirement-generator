@@ -2,12 +2,19 @@
   "name": "pd-requirement-generator",
   "version": "0.1.0",
   "private": true,
-  "description": "产品研发需求生成器 — 选品牌/传参考图/填需求，一键生成需求 PPT（纯静态前端）",
+  "description": "产品研发需求生成器 + 选品灵感库 — 采集打标/勾选选品/一键生成研发需求 PPT（CF Pages + Functions + R2 + D1）",
   "scripts": {
+    "dev": "wrangler pages dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "migrate:local": "wrangler d1 migrations apply pd-inspirations --local",
+    "migrate:remote": "wrangler d1 migrations apply pd-inspirations --remote",
     "deploy:preview": "wrangler pages deploy --branch=preview",
     "deploy": "wrangler pages deploy --branch=main"
   },
   "devDependencies": {
+    "pptxgenjs": "^3.12.0",
+    "vitest": "^3.2.4",
     "wrangler": "^4.84.0"
   }
 }

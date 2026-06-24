@@ -1,0 +1,5 @@
+# 本地开发密钥模板 —— 复制为 .dev.vars（已 gitignore，绝不提交）
+# 生产环境用：wrangler pages secret put APP_PASSWORD
+
+# 选品库登录密码（密码即令牌，v1 简化）
+APP_PASSWORD=change-me-local-dev
