@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>产品研发需求生成器</title>
+  <title>选品灵感库 · 研发需求</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-in">
-      <div class="brandmark"><span class="dot"></span>产品研发需求生成器</div>
-      <div class="topbar-right">
+      <div class="brandmark"><span class="dot"></span>选品 · 研发</div>
+      <div class="view-switch" id="viewSwitch">
+        <button type="button" data-view="library" class="active">选品库</button>
+        <button type="button" data-view="reqform">研发需求</button>
+      </div>
+      <div class="topbar-right" id="reqformTools">
         <span id="saveStatus" class="save-status" aria-live="polite"></span>
         <button id="btnImport" class="btn-ghost" type="button">导入草稿</button>
         <button id="btnExport" class="btn-ghost" type="button">导出草稿</button>
@@ -19,103 +23,189 @@
     </div>
   </header>
 
-  <div id="draftBar" class="draftbar" hidden>
-    检测到上次草稿。
-    <button id="btnRestore" class="link" type="button">恢复</button>
-    <button id="btnDiscard" class="link" type="button">清空重来</button>
+  <!-- ============ 选品库视图 ============ -->
+  <div id="view-library">
+    <div id="loginScreen" class="login-screen" hidden>
+      <div class="card">
+        <h2>选品灵感库</h2>
+        <p>输入密码进入你的私人选品库</p>
+        <div id="loginErr" class="login-err" aria-live="polite"></div>
+        <input id="loginPw" type="password" placeholder="密码" autocomplete="current-password" />
+        <button id="loginBtn" class="btn-primary" type="button">进入</button>
+      </div>
+    </div>
+
+    <div id="libMain" class="lib" hidden>
+      <div class="lib-toolbar">
+        <button id="btnUpload" class="btn-primary" type="button">+ 上传灵感</button>
+        <span class="grow"></span>
+        <button id="btnSelectMode" class="btn-ghost" type="button">选品模式</button>
+      </div>
+      <div class="filter-row" id="filterBrands"></div>
+      <div class="filter-row" id="filterCats"></div>
+      <div id="gallery" class="gallery" aria-live="polite"></div>
+      <div id="galleryEmpty" class="empty" hidden></div>
+    </div>
   </div>
 
-  <div class="layout">
-    <nav class="sidenav" aria-label="章节导航">
-      <a href="#sec-base" data-sec="sec-base">基本信息</a>
-      <a href="#sec-one" data-sec="sec-one">① 需求描述</a>
-      <a href="#sec-ref" data-sec="sec-ref">② 参考图</a>
-      <a href="#sec-prod" data-sec="sec-prod">③ 产品要求</a>
-      <a href="#sec-take" data-sec="sec-take">④ 承接</a>
-      <a href="#sec-gen" data-sec="sec-gen" class="nav-cta">生成</a>
-    </nav>
+  <!-- 选品选择条 -->
+  <div id="selbar" class="selbar" hidden>
+    <span class="count" id="selCount">已选 0</span>
+    <button id="btnGenReq" class="btn-primary" type="button">生成研发需求</button>
+    <button id="btnSelCancel" class="link" type="button">取消</button>
+  </div>
 
-    <main class="content">
-      <!-- 基本信息 -->
-      <section id="sec-base" class="card">
-        <h2>基本信息</h2>
-        <label class="field-label">品牌</label>
-        <div id="brandPicker" class="brand-picker" role="radiogroup" aria-label="品牌"></div>
-        <label class="field-label" for="reqName">需求名 <span class="hint">（用于文件夹与文件命名，如「夏季解腻冰饮」）</span></label>
-        <input id="reqName" type="text" placeholder="给这个需求起个名字" />
-      </section>
+  <!-- ============ 研发需求视图（原单产品表单）============ -->
+  <div id="view-reqform" hidden>
+    <div id="draftBar" class="draftbar" hidden>
+      检测到上次草稿。
+      <button id="btnRestore" class="link" type="button">恢复</button>
+      <button id="btnDiscard" class="link" type="button">清空重来</button>
+    </div>
 
-      <!-- ① 需求描述 -->
-      <section id="sec-one" class="card">
-        <h2>① 需求描述</h2>
-        <p class="sec-hint">这次要研发什么——一道菜或一整批方向都行，自由写。</p>
-        <textarea id="reqDesc" rows="5" placeholder="这次要研发什么？可以是一道菜，也可以是一整批方向。能说多少说多少：给谁、什么场景、为什么现在做、对标什么…"></textarea>
-      </section>
+    <div class="layout">
+      <nav class="sidenav" aria-label="章节导航">
+        <a href="#sec-base" data-sec="sec-base">基本信息</a>
+        <a href="#sec-one" data-sec="sec-one">① 需求描述</a>
+        <a href="#sec-ref" data-sec="sec-ref">② 参考图</a>
+        <a href="#sec-prod" data-sec="sec-prod">③ 产品要求</a>
+        <a href="#sec-take" data-sec="sec-take">④ 承接</a>
+        <a href="#sec-gen" data-sec="sec-gen" class="nav-cta">生成</a>
+      </nav>
 
-      <!-- ② 参考图 -->
-      <section id="sec-ref" class="card">
-        <h2>② 参考图</h2>
-        <p class="sec-hint">贴参考图（iPhone 截图 / 小红书图都行，可批量）；上传后每张图下面写「要点说明」——这张要借鉴 / 注意什么。</p>
-        <div id="dropZone" class="dropzone" tabindex="0" role="button" aria-label="拖入或点击上传参考图">
-          <div class="dz-inner">
-            <div class="dz-title">拖入参考图，或点击浏览</div>
-            <div class="dz-sub">支持 PNG / JPG；也可直接 Ctrl/⌘+V 粘贴截图</div>
+      <main class="content">
+        <section id="sec-base" class="card">
+          <h2>基本信息</h2>
+          <label class="field-label">品牌</label>
+          <div id="brandPicker" class="brand-picker" role="radiogroup" aria-label="品牌"></div>
+          <label class="field-label" for="reqName">需求名 <span class="hint">（用于文件夹与文件命名，如「夏季解腻冰饮」）</span></label>
+          <input id="reqName" type="text" placeholder="给这个需求起个名字" />
+        </section>
+
+        <section id="sec-one" class="card">
+          <h2>① 需求描述</h2>
+          <p class="sec-hint">这次要研发什么——一道菜或一整批方向都行，自由写。</p>
+          <textarea id="reqDesc" rows="5" placeholder="这次要研发什么？可以是一道菜，也可以是一整批方向。能说多少说多少：给谁、什么场景、为什么现在做、对标什么…"></textarea>
+        </section>
+
+        <section id="sec-ref" class="card">
+          <h2>② 参考图</h2>
+          <p class="sec-hint">贴参考图（iPhone 截图 / 小红书图都行，可批量）；上传后每张图下面写「要点说明」——这张要借鉴 / 注意什么。</p>
+          <div id="dropZone" class="dropzone" tabindex="0" role="button" aria-label="拖入或点击上传参考图">
+            <div class="dz-inner">
+              <div class="dz-title">拖入参考图，或点击浏览</div>
+              <div class="dz-sub">支持 PNG / JPG；也可直接 Ctrl/⌘+V 粘贴截图</div>
+            </div>
+            <input id="fileInput" type="file" accept="image/*" multiple hidden />
           </div>
-          <input id="fileInput" type="file" accept="image/*" multiple hidden />
-        </div>
-        <div id="uploadProgress" class="upload-progress" aria-live="polite" hidden>
-          <span class="spinner" aria-hidden="true"></span>
-          <span id="uploadProgressText">处理中…</span>
-        </div>
-        <div id="refList" class="ref-list"></div>
-
-        <label class="field-label" for="avoidOverall">整体不要 / 规避</label>
-        <textarea id="avoidOverall" rows="2" placeholder="别人的翻车点、不符合本品牌的、成本不可行的…"></textarea>
-
-        <label class="field-label" for="present">呈现要点</label>
-        <textarea id="present" rows="2" placeholder="成品呈现的要点：摆盘 / 器皿 / 份量感 / 上桌效果 / 命名…"></textarea>
-      </section>
-
-      <!-- ③ 产品要求 -->
-      <section id="sec-prod" class="card">
-        <h2>③ 产品要求</h2>
-        <label class="field-label" for="category">品类</label>
-        <select id="category"></select>
-        <label class="field-label">味型 / 风味特色方向 <span class="hint">（可多选：基础味型 + 地域风味方向）</span></label>
-        <div id="flavorPicker" class="flavor-picker"></div>
-        <label class="field-label" for="flavorNote">味型备注 <span class="hint">（选项之外，自由补充）</span></label>
-        <textarea id="flavorNote" rows="2" placeholder="除了上面选的，还想补充的口味方向 / 特别要求…"></textarea>
-        <div id="extraFields" class="grid2"></div>
-        <p class="sec-hint muted">份量 / 成本 / 售价不在这里填——研发出成品后按成本定价法定。</p>
-      </section>
-
-      <!-- ④ 承接 -->
-      <section id="sec-take" class="card">
-        <h2>④ 承接 <span class="hint">（研发填）</span></h2>
-        <div class="grid2">
-          <div>
-            <label class="field-label" for="owner">承接人</label>
-            <input id="owner" type="text" placeholder="研发负责人" />
+          <div id="uploadProgress" class="upload-progress" aria-live="polite" hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="uploadProgressText">处理中…</span>
           </div>
-          <div>
-            <label class="field-label" for="launchTime">想什么时候上</label>
-            <input id="launchTime" type="text" placeholder="目标上新时间" />
+          <div id="refList" class="ref-list"></div>
+
+          <label class="field-label" for="avoidOverall">整体不要 / 规避</label>
+          <textarea id="avoidOverall" rows="2" placeholder="别人的翻车点、不符合本品牌的、成本不可行的…"></textarea>
+
+          <label class="field-label" for="present">呈现要点</label>
+          <textarea id="present" rows="2" placeholder="成品呈现的要点：摆盘 / 器皿 / 份量感 / 上桌效果 / 命名…"></textarea>
+        </section>
+
+        <section id="sec-prod" class="card">
+          <h2>③ 产品要求</h2>
+          <label class="field-label" for="category">品类</label>
+          <select id="category"></select>
+          <label class="field-label">味型 / 风味特色方向 <span class="hint">（可多选：基础味型 + 地域风味方向）</span></label>
+          <div id="flavorPicker" class="flavor-picker"></div>
+          <label class="field-label" for="flavorNote">味型备注 <span class="hint">（选项之外，自由补充）</span></label>
+          <textarea id="flavorNote" rows="2" placeholder="除了上面选的，还想补充的口味方向 / 特别要求…"></textarea>
+          <div id="extraFields" class="grid2"></div>
+          <p class="sec-hint muted">份量 / 成本 / 售价不在这里填——研发出成品后按成本定价法定。</p>
+        </section>
+
+        <section id="sec-take" class="card">
+          <h2>④ 承接 <span class="hint">（研发填）</span></h2>
+          <div class="grid2">
+            <div>
+              <label class="field-label" for="owner">承接人</label>
+              <input id="owner" type="text" placeholder="研发负责人" />
+            </div>
+            <div>
+              <label class="field-label" for="launchTime">想什么时候上</label>
+              <input id="launchTime" type="text" placeholder="目标上新时间" />
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-gen" class="card gen-card">
+          <h2>生成需求 PPT</h2>
+          <p id="saveModeHint" class="sec-hint"></p>
+          <button id="btnGenerate" class="btn-primary" type="button">生成 PPT</button>
+          <div id="genProgress" class="gen-progress" hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="genStatus">生成中…</span>
+          </div>
+          <div id="genResult" class="gen-result" hidden></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ 多产品研发需求清单（由选品勾选进入）============ -->
+  <div id="view-reqmulti" hidden>
+    <div class="rm-bar">
+      <button id="rmBack" class="btn-ghost" type="button">← 返回选品库</button>
+      <span id="rmTitle" class="rm-title">研发需求清单</span>
+      <span class="grow"></span>
+      <span id="rmStatus" class="save-status"></span>
+      <button id="rmGenerate" class="btn-primary" type="button">生成 PPT</button>
+    </div>
+    <div class="rm-wrap">
+      <p class="sec-hint">每个产品一段：品牌、品类、参考图已从选品带入，补上需求名和细节即可。份量/成本/售价不填——研发出成品后定。</p>
+      <div id="rmList" class="rm-list"></div>
+      <div id="rmGenResult" class="gen-result" hidden></div>
+    </div>
+  </div>
+
+  <!-- 上传弹窗 -->
+  <div id="uploadModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card wide">
+      <div class="modal-head"><h3>上传灵感</h3><button class="modal-close" type="button" data-close aria-label="关闭">×</button></div>
+      <div class="modal-body">
+        <div id="upDrop" class="dropzone" tabindex="0" role="button" aria-label="选择图片">
+          <div class="dz-title">拖入或点击选图（可多选）</div>
+          <div class="dz-sub">每张图各成一条；也可 Ctrl/⌘+V 粘贴截图</div>
+          <input id="upFile" type="file" accept="image/*" multiple hidden />
+        </div>
+        <div id="batchApply" class="batch-apply" hidden>
+          <strong>批量套用</strong>到全部图片：
+          <div class="row" id="batchBrands"></div>
+          <div class="row">
+            <select id="batchCat"></select>
+            <button id="batchApplyBtn" class="btn-ghost" type="button">套用到全部</button>
           </div>
         </div>
-      </section>
+        <div id="upList" class="up-list"></div>
+      </div>
+      <div class="modal-foot">
+        <span id="upStatus" class="save-status"></span>
+        <button id="upSaveBtn" class="btn-primary" type="button" disabled>保存全部</button>
+      </div>
+    </div>
+  </div>
 
-      <!-- 生成 -->
-      <section id="sec-gen" class="card gen-card">
-        <h2>生成需求 PPT</h2>
-        <p id="saveModeHint" class="sec-hint"></p>
-        <button id="btnGenerate" class="btn-primary" type="button">生成 PPT</button>
-        <div id="genProgress" class="gen-progress" hidden>
-          <span class="spinner" aria-hidden="true"></span>
-          <span id="genStatus">生成中…</span>
-        </div>
-        <div id="genResult" class="gen-result" hidden></div>
-      </section>
-    </main>
+  <!-- 详情弹窗 -->
+  <div id="detailModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <div class="modal-head"><h3>选品详情</h3><button class="modal-close" type="button" data-close aria-label="关闭">×</button></div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-foot">
+        <button id="detailDel" class="btn-ghost" type="button">删除</button>
+        <button id="detailSave" class="btn-primary" type="button">保存修改</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
@@ -127,6 +217,9 @@
   <script src="js/store.js"></script>
   <script src="js/fs.js"></script>
   <script src="js/deck.js"></script>
+  <script src="js/apiclient.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/reqform-multi.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

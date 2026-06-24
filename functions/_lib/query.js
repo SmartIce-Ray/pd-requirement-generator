@@ -7,7 +7,7 @@ export function validateBrands(input) {
     try { arr = JSON.parse(input); } catch { return []; }
   }
   if (!Array.isArray(arr)) return [];
-  return arr.filter((b) => BRAND_NAMES.includes(b));
+  return [...new Set(arr.filter((b) => BRAND_NAMES.includes(b)))];
 }
 
 // 构建总览列表查询（参数化，防注入）。untagged 优先于 category。

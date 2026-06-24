@@ -51,6 +51,7 @@ describe("auth", () => {
 describe("query", () => {
   it("validateBrands 过滤非法/解析 JSON", () => {
     expect(validateBrands(["野百灵", "假品牌", "宁桂杏"])).toEqual(["野百灵", "宁桂杏"]);
+    expect(validateBrands(["野百灵", "野百灵", "宁桂杏"])).toEqual(["野百灵", "宁桂杏"]); // 去重
     expect(validateBrands('["飞花小馆"]')).toEqual(["飞花小馆"]);
     expect(validateBrands("not json")).toEqual([]);
     expect(validateBrands(null)).toEqual([]);
