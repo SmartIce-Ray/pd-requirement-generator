@@ -13,6 +13,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      # 缓存破坏：把 index.html 里资源的 ?v=__BUILD__ 占位换成本次提交 SHA。
+      # CF Pages 给静态资源固定 max-age=14400 且 _headers 改不动它，靠版本化 URL 保证
+      # 每次部署浏览器都拉到新 JS/CSS（HTML 是 max-age=0 每次最新），杜绝新HTML+旧JS错配。
+      - name: Cache-bust assets with commit SHA
+        run: sed -i "s/__BUILD__/${GITHUB_SHA}/g" app/index.html
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

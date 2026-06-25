@@ -1,5 +1,0 @@
-# Cloudflare Pages 缓存策略。
-# 文件名不带 hash（无构建），故所有静态资源每次回源校验（etag → 未变 304，很轻），
-# 杜绝"新 index.html + 旧 library.js"的缓存错配（曾导致整页 init 崩溃）。
-/*
-  Cache-Control: public, max-age=0, must-revalidate
