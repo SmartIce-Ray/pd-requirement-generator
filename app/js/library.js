@@ -200,16 +200,17 @@ window.RD = window.RD || {};
   // ---------- 上传 ----------
   let upCards = []; // { dataURL, w, h, brandsEl, catEl, notesEl, el }
   function openUpload() {
-    upCards = []; $("#upList").innerHTML = ""; $("#batchApply").hidden = true; $("#upStatus").textContent = "";
-    $("#upSaveBtn").disabled = true;
-    renderBatchApply();
+    upCards = []; $("#upList").innerHTML = ""; $("#upStatus").textContent = "";
+    updateUploadState();
     openModal("#uploadModal");
   }
-  function renderBatchApply() {
-    const bb = $("#batchBrands"); bb.innerHTML = "";
-    config.brands.forEach((b) => bb.appendChild(brandOpt(b.name, false)));
-    const bc = $("#batchCat"); bc.innerHTML = ""; bc.appendChild(opt("", "（不改分类）"));
-    config.categories.forEach((c) => bc.appendChild(opt(c.name, c.name)));
+  // 集中维护上传弹窗状态：保存键启用/数量文案 + 上传区收缩为细条
+  function updateUploadState() {
+    const n = upCards.filter((c) => c.dataURL).length;
+    const btn = $("#upSaveBtn");
+    btn.disabled = n === 0;
+    btn.textContent = n ? `保存全部（${n} 张）` : "保存全部";
+    $("#upDrop").classList.toggle("small", upCards.length > 0);
   }
   async function addUploadFiles(fileList) {
     const files = Array.from(fileList).filter(Boolean);
@@ -217,6 +218,7 @@ window.RD = window.RD || {};
     const fails = [];
     for (const file of files) {
       const cardObj = makeUploadCard();
+      updateUploadState();
       try {
         const r = await window.RD.images.process(file);
         cardObj.dataURL = r.dataURL; cardObj.w = r.w; cardObj.h = r.h;
@@ -225,14 +227,16 @@ window.RD = window.RD || {};
         cardObj.el.remove(); upCards = upCards.filter((c) => c !== cardObj);
         fails.push(e && e.message);
       }
+      updateUploadState();
     }
-    $("#batchApply").hidden = upCards.length === 0;
-    $("#upSaveBtn").disabled = upCards.length === 0;
     if (fails.length) toast(fails.length === 1 ? (fails[0] || "图片处理失败") : `${fails.length} 张未能添加（其余已加）`, true);
   }
   function makeUploadCard() {
     const el = document.createElement("div"); el.className = "up-card";
+    const thumbWrap = document.createElement("div"); thumbWrap.className = "up-thumb-wrap";
     const thumb = document.createElement("img"); thumb.className = "up-thumb loading"; thumb.alt = "预览";
+    const del = document.createElement("button"); del.type = "button"; del.className = "up-del"; del.setAttribute("aria-label", "移除这张图"); del.textContent = "×";
+    thumbWrap.append(thumb, del);
     const right = document.createElement("div");
     const bp = document.createElement("div"); bp.className = "brand-picker";
     config.brands.forEach((b) => bp.appendChild(brandOpt(b.name, false)));
@@ -241,23 +245,17 @@ window.RD = window.RD || {};
     const notes = document.createElement("textarea"); notes.rows = 2; notes.placeholder = "想法 / 灵感（可空，之后整理）";
     const lblB = fieldLabel("品牌（可多选）"); const lblC = fieldLabel("分类");
     right.append(lblB, bp, lblC, catSel, notes);
-    el.append(thumb, right);
+    el.append(thumbWrap, right);
     $("#upList").appendChild(el);
     const obj = { dataURL: "", w: 0, h: 0, el, thumb, brandsEl: bp, catEl: catSel, notesEl: notes };
+    del.addEventListener("click", () => removeCard(obj));
     upCards.push(obj);
     return obj;
   }
-  function applyBatch() {
-    const brands = pickedBrands($("#batchBrands"));
-    const cat = $("#batchCat").value;
-    upCards.forEach((c) => {
-      if (brands.length) $$(".brand-opt", c.brandsEl).forEach((b) => {
-        const on = brands.includes(b.dataset.name);
-        b.classList.toggle("sel", on); b.setAttribute("aria-pressed", String(on));
-      });
-      if (cat) c.catEl.value = cat;
-    });
-    toast("已套用到全部");
+  function removeCard(cardObj) {
+    cardObj.el.remove();
+    upCards = upCards.filter((c) => c !== cardObj);
+    updateUploadState();
   }
   async function saveUpload() {
     const ready = upCards.filter((c) => c.dataURL);
@@ -307,7 +305,6 @@ window.RD = window.RD || {};
     $("#detailSave").addEventListener("click", saveDetail);
     $("#detailDel").addEventListener("click", deleteDetail);
     $("#upSaveBtn").addEventListener("click", saveUpload);
-    $("#batchApplyBtn").addEventListener("click", applyBatch);
     bindModalClose("#uploadModal");
     bindModalClose("#detailModal");
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal("#uploadModal"); closeModal("#detailModal"); } });
