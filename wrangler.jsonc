@@ -3,6 +3,8 @@
   // 品牌内容文件夹不在 app/ 内，不会被部署。
   "name": "pd-requirement-generator",
   "pages_build_output_dir": "app",
+  // 必须：旧兼容日期下 request.formData() 会把上传文件当字符串返回，导致图片上传失败。
+  "compatibility_date": "2025-04-01",
 
   // 选品库元数据（D1）
   "d1_databases": [
