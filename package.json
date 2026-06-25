@@ -9,8 +9,8 @@
     "test:watch": "vitest",
     "migrate:local": "wrangler d1 migrations apply pd-inspirations --local",
     "migrate:remote": "wrangler d1 migrations apply pd-inspirations --remote",
-    "deploy:preview": "wrangler pages deploy --branch=preview",
-    "deploy": "wrangler pages deploy --branch=main"
+    "deploy:preview": "bash scripts/cachebust-deploy.sh --branch=preview",
+    "deploy": "bash scripts/cachebust-deploy.sh --branch=main"
   },
   "devDependencies": {
     "pptxgenjs": "^3.12.0",
