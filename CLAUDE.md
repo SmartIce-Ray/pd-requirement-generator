@@ -16,6 +16,7 @@
   - D1：`wrangler d1 create pd-inspirations` → 填 database_id → `npm run migrate:remote`
   - R2：账号需先**启用 R2**，`wrangler r2 bucket create pd-inspirations`（token 需 R2:Edit 权限）
   - Secret：`wrangler pages secret put APP_PASSWORD`（选品库登录密码）
+- **缓存破坏（别删占位）**：CF Pages 给静态资源固定 `max-age=14400` 且 `_headers` 改不动它，故 `app/index.html` 资源引用带 `?v=__BUILD__` 占位，部署时替换成提交 SHA（CI 走 deploy.yml 的 sed 步；CLI 走 `scripts/cachebust-deploy.sh`）。`index.html` 本身 `max-age=0`，故每次部署浏览器都拉到新 JS/CSS，防"新 HTML + 旧 JS"错配崩页。**改/加资源引用时保留 `?v=__BUILD__`**
 - **环境**：无 staging；preview 部署即验证环境
 - **仓库**：`SmartIce-Ray/pd-requirement-generator`（私有）
 - **分支纪律**：禁止直接 push `main`；功能走 `feat/` / `fix/` / `chore/` → PR → squash → 部署
