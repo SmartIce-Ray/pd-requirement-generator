@@ -174,17 +174,12 @@
       <div class="modal-head"><h3>上传灵感</h3><button class="modal-close" type="button" data-close aria-label="关闭">×</button></div>
       <div class="modal-body">
         <div id="upDrop" class="dropzone" tabindex="0" role="button" aria-label="选择图片">
-          <div class="dz-title">拖入或点击选图（可多选）</div>
-          <div class="dz-sub">每张图各成一条；也可 Ctrl/⌘+V 粘贴截图</div>
-          <input id="upFile" type="file" accept="image/*" multiple hidden />
-        </div>
-        <div id="batchApply" class="batch-apply" hidden>
-          <strong>批量套用</strong>到全部图片：
-          <div class="row" id="batchBrands"></div>
-          <div class="row">
-            <select id="batchCat"></select>
-            <button id="batchApplyBtn" class="btn-ghost" type="button">套用到全部</button>
+          <div class="dz-title">
+            <span class="dz-pc">拖入或点击选图（可多选）</span>
+            <span class="dz-touch">点此从相册选图（可多选）</span>
           </div>
+          <div class="dz-sub dz-pc">每张图各成一条；也可 Ctrl/⌘+V 粘贴截图</div>
+          <input id="upFile" type="file" accept="image/*" multiple hidden />
         </div>
         <div id="upList" class="up-list"></div>
       </div>

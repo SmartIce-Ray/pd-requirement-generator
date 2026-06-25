@@ -182,7 +182,7 @@ textarea{resize:vertical;line-height:1.5}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
 .modal-head h3{margin:0;font-size:16px}
 .modal-close{border:none;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px}
-.modal-body{padding:18px 20px;overflow:auto}
+.modal-body{padding:18px 20px;overflow:auto;flex:1;min-height:0}
 .modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface)}
 
 /* 详情 */
@@ -190,18 +190,31 @@ textarea{resize:vertical;line-height:1.5}
 
 /* 上传：每图一张卡 */
 .up-list{display:flex;flex-direction:column;gap:14px;margin-top:14px}
-.up-card{display:grid;grid-template-columns:120px 1fr;gap:14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--elev);padding:12px}
-.up-card .up-thumb{width:120px;height:120px;object-fit:cover;border-radius:6px;background:var(--bg)}
+.up-card{display:grid;grid-template-columns:120px 1fr;gap:14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--elev);padding:12px;animation:upIn var(--t) ease both}
+@keyframes upIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.up-thumb-wrap{position:relative;width:120px;height:120px;flex:none}
+.up-card .up-thumb{width:100%;height:100%;object-fit:cover;border-radius:6px;background:var(--bg);display:block}
 .up-card .up-thumb.loading{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+.up-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;border-radius:6px;background:rgba(26,25,24,.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background var(--t)}
+.up-del:hover{background:rgba(26,25,24,.78)}
 .up-card .brand-picker{gap:6px}
 .up-card .brand-opt{padding:5px 12px;font-size:13px}
 .up-card textarea{margin-top:8px}
-.batch-apply{background:var(--acc-soft);border-radius:var(--radius-sm);padding:12px 14px;margin-top:6px;font-size:13px;color:var(--ink2)}
-.batch-apply .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+/* 上传区：PC / 触屏 文案切换 + 有图后收缩为细条（.small 已在上方定义 padding） */
+.dz-touch{display:none}
+.dropzone.small .dz-sub{display:none}
+@media(hover:none){.dz-pc{display:none}.dz-touch{display:inline}}
 
 @media (max-width:560px){
+  .modal{padding:0}
+  .modal-card{max-width:100%;width:100%;height:100dvh;max-height:100dvh;border-radius:0}
+  .modal-foot{padding-bottom:max(14px,env(safe-area-inset-bottom))}
   .up-card{grid-template-columns:1fr}
-  .up-card .up-thumb{width:100%;height:160px}
+  .up-thumb-wrap{width:100%;height:160px}
+  .up-del{width:28px;height:28px;font-size:18px}
+  .up-card .brand-opt{min-height:40px;padding:10px 16px;font-size:14px}
+  .up-card select{min-height:44px;font-size:16px}
+  .up-card textarea{font-size:16px}
   .gallery{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 }
 
