@@ -332,8 +332,10 @@ window.RD = window.RD || {};
   function genRequirement() {
     const picks = Array.from(selected.values());
     if (!picks.length) return;
+    // 选品时若按某品牌筛选，把该品牌带进生成页整批锁定；「全部」/「未打标」则不带（生成页让用户选一次）
+    const filterBrand = (selBrand && selBrand !== "__untagged__") ? selBrand : "";
     if (window.RD.reqformMulti && window.RD.reqformMulti.start) {
-      window.RD.reqformMulti.start(picks);
+      window.RD.reqformMulti.start(picks, filterBrand);
     } else {
       toast("研发需求模块未就绪", true);
     }

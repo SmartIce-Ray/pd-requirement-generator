@@ -38,19 +38,27 @@ describe("buildDeck 单产品（回归）", () => {
 });
 
 describe("buildDeckMulti 多产品", () => {
-  it("3 产品（跨品牌、含图）生成合法非空 pptx", async () => {
+  // 品牌 / 总需求名是整批共享，放在 meta；产品只带需求描述与细节
+  it("3 产品（整批一个品牌+总需求名、含图）生成合法非空 pptx", async () => {
     const buf = await buildDeckMulti([
-      product({ refs: [img()] }),
-      product({ brand: "宁桂杏", reqName: "牛油果奶昔", category: "甜品", refs: [img(), img()] }),
-      product({ brand: "飞花小馆", reqName: "麻辣拌面", category: "主食", owner: "张三", launchTime: "夏季旺季前" }),
-    ], { date: new Date(2026, 5, 25) });
+      product({ desc: "清爽解腻冰饮", refs: [img()] }),
+      product({ desc: "牛油果奶昔", category: "甜品", refs: [img(), img()] }),
+      product({ desc: "麻辣拌面", category: "主食", owner: "张三", launchTime: "夏季旺季前" }),
+    ], { date: new Date(2026, 5, 25), brand: "野百灵", reqName: "夏季解腻新品一批" });
     expect(buf.length).toBeGreaterThan(15000);
   });
+  it("产品缺需求描述也能靠品类/序号定标题、不崩", async () => {
+    const buf = await buildDeckMulti([
+      product({ desc: "", category: "饮品" }),
+      product({ desc: "", category: "" }),
+    ], { date: new Date(2026, 5, 25), brand: "宁桂杏", reqName: "测一批" });
+    expect(buf.length).toBeGreaterThan(8000);
+  });
   it("空列表不崩", async () => {
-    const buf = await buildDeckMulti([], { date: new Date(2026, 5, 25) });
+    const buf = await buildDeckMulti([], { date: new Date(2026, 5, 25), brand: "野百灵", reqName: "测一批" });
     expect(buf.length).toBeGreaterThan(3000);
   });
-  it("无 meta.date 不崩", async () => {
+  it("无 meta（缺品牌/需求名/日期）不崩", async () => {
     const buf = await buildDeckMulti([product()], {});
     expect(buf.length).toBeGreaterThan(8000);
   });

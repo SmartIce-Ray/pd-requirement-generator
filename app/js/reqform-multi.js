@@ -8,7 +8,9 @@ window.RD = window.RD || {};
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
   let blocks = []; // 产品块状态数组
+  let batch = { reqName: "", brand: "", brandLocked: false }; // 整批共享：总需求名 + 品牌（品牌锁定时来自选品筛选）
   const DRAFT_KEY = "rd_multi_draft_v1";
+  const BATCH_KEY = "rd_multi_batch_v1"; // 整批草稿，按选品集合分别存
 
   // ---------- 工具 ----------
   let toastTimer;
@@ -47,26 +49,48 @@ window.RD = window.RD || {};
   // 品牌/分类的真源：优先用 library 从 /api/config 拿到的（后端单一真源 + 含自定义分类）。
   function cfgBrands() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.brands) || window.RD.brands || []; }
   function cfgCatNames() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.categories) ? c.categories.map((x) => x.name) : (S().categories || []); }
+  // 整批草稿：总需求名 + 品牌，按选品集合（pickId 排序后拼成 key）分别存，换一批不串
+  function loadBatches() { try { return JSON.parse(localStorage.getItem(BATCH_KEY)) || {}; } catch { return {}; } }
+  // key 由 ids 派生（不传则用当前 blocks）；clearDraftFor 传入要清的 ids，保证存/清同一把 key
+  function batchKey(ids) { return (ids || blocks.map((b) => b.pickId)).slice().sort().join(","); }
+  function saveBatches(bm) {
+    try { localStorage.setItem(BATCH_KEY, JSON.stringify(bm)); }
+    catch (e) {
+      console.warn("batch_draft_save_failed", e);
+      if (!draftWarned) { draftWarned = true; toast("草稿无法自动保存（浏览器存储受限），请尽快生成", true); }
+    }
+  }
   let persistTimer;
   function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
       const m = loadDrafts();
-      blocks.forEach((b) => { m[b.pickId] = { reqName: b.reqName, brand: b.brand, desc: b.desc, present: b.present, avoidOverall: b.avoidOverall, category: b.category, flavors: b.flavors, flavorNote: b.flavorNote, extras: b.extras, owner: b.owner, launchTime: b.launchTime }; });
+      blocks.forEach((b) => { m[b.pickId] = { desc: b.desc, present: b.present, avoidOverall: b.avoidOverall, category: b.category, flavors: b.flavors, flavorNote: b.flavorNote, extras: b.extras, owner: b.owner, launchTime: b.launchTime }; });
       saveDrafts(m);
+      const bm = loadBatches(); bm[batchKey()] = { reqName: batch.reqName, brand: batch.brand }; saveBatches(bm);
     }, 500);
   }
-  function clearDraftFor(ids) { const m = loadDrafts(); ids.forEach((id) => delete m[id]); saveDrafts(m); }
+  function clearDraftFor(ids) {
+    const m = loadDrafts(); ids.forEach((id) => delete m[id]); saveDrafts(m);
+    const bm = loadBatches(); delete bm[batchKey(ids)]; saveBatches(bm);
+  }
+
+  function isRealBrand(name) { return !!name && cfgBrands().some((b) => b.name === name); }
+  // 选品全是同一个品牌时（哪怕筛选用的是「全部」）预填，混牌则留空让用户选一次
+  function soleBrand(picks) {
+    const set = new Set();
+    picks.forEach((p) => (p.brands || []).forEach((b) => set.add(b)));
+    return set.size === 1 ? [...set][0] : "";
+  }
 
   // ---------- 入口 ----------
-  async function start(picks) {
+  // filterBrand：选品时的品牌筛选值；是真实品牌则整批锁定该品牌、只读显示，否则顶部让用户选一次
+  async function start(picks, filterBrand) {
     const drafts = loadDrafts();
     blocks = picks.map((p) => {
       const d = drafts[p.id] || {};
       return {
         pickId: p.id,
-        reqName: d.reqName || "",
-        brand: (d.brand) || (p.brands && p.brands[0]) || "",
         desc: d.desc != null ? d.desc : (p.notes || ""),
         present: d.present || "",
         avoidOverall: d.avoidOverall || "",
@@ -80,13 +104,24 @@ window.RD = window.RD || {};
         _refsLoading: true,
       };
     });
+    const locked = isRealBrand(filterBrand);
+    const savedBatch = loadBatches()[batchKey()] || {};
+    const sole = soleBrand(picks);
+    // 非锁定时的预填都要过 isRealBrand 校验，避免已重命名/删除的旧品牌标签悄悄进 PPT
+    const prefill = isRealBrand(savedBatch.brand) ? savedBatch.brand : (isRealBrand(sole) ? sole : "");
+    batch = {
+      reqName: savedBatch.reqName || "",
+      brand: locked ? filterBrand : prefill,
+      brandLocked: locked,
+    };
     window.RD.library.setView("reqmulti");
     $("#rmTitle").textContent = `研发需求清单 · ${blocks.length} 个产品`;
     $("#rmGenResult").hidden = true;
+    renderBatch();
     render();
     // 异步取每个选品的图作为首张参考图
     await Promise.all(blocks.map(async (b) => {
-      try { b.refs = [await pickToRef(b.pickId)]; } catch (_) { b.refs = []; }
+      try { b.refs = [await pickToRef(b.pickId)]; } catch (e) { console.warn("ref_fetch_failed", b.pickId, e); b.refs = []; }
       b._refsLoading = false;
       renderRefs(b);
     }));
@@ -98,23 +133,44 @@ window.RD = window.RD || {};
     blocks.forEach((b, i) => list.appendChild(renderBlock(b, i)));
   }
 
-  function brandRow(b) {
+  // ---------- 整批头部：总需求名 + 品牌（锁定时只读，否则单选一次）----------
+  function renderBatch() {
+    const host = $("#rmBatch"); if (!host) return;
+    host.innerHTML = "";
+    const card = el("div", "rm-batch-card");
+
+    card.appendChild(fieldLabel("总需求名"));
+    const name = el("input"); name.type = "text"; name.placeholder = "给这一批起个名，如「夏季解腻新品一批」";
+    name.value = batch.reqName || "";
+    name.addEventListener("input", () => { batch.reqName = name.value; persist(); });
+    card.appendChild(name);
+
+    card.appendChild(fieldLabel("品牌"));
+    if (batch.brandLocked) {
+      const lk = el("div", "rm-brand-locked");
+      lk.appendChild(el("span", "name", batch.brand));
+      lk.appendChild(el("span", "from", "来自选品筛选"));
+      card.appendChild(lk);
+    } else {
+      card.appendChild(batchBrandPicker());
+    }
+    host.appendChild(card);
+  }
+  function batchBrandPicker() {
     const row = el("div", "brand-picker");
-    S_brands().forEach((br) => {
-      const opt = el("button", "brand-opt" + (b.brand === br.name ? " sel" : ""));
+    cfgBrands().forEach((br) => {
+      const opt = el("button", "brand-opt" + (batch.brand === br.name ? " sel" : ""));
       opt.type = "button"; opt.dataset.name = br.name;
       const chk = el("span", "check", "✓"); opt.append(chk, document.createTextNode(br.name));
       opt.addEventListener("click", () => {
-        b.brand = br.name;
+        batch.brand = br.name;
         $$(".brand-opt", row).forEach((o) => o.classList.toggle("sel", o.dataset.name === br.name));
-        $(".who", b._el).textContent = `${b.brand || "品牌"} · ${b.reqName || "未命名"}`;
         persist();
       });
       row.appendChild(opt);
     });
     return row;
   }
-  function S_brands() { return cfgBrands(); }
 
   function extrasBox(b) {
     const box = el("div", "grid2");
@@ -185,28 +241,20 @@ window.RD = window.RD || {};
     node.value = b[key] || "";
     node.addEventListener("input", () => {
       b[key] = node.value;
-      if (key === "reqName") $(".who", b._el).textContent = `${b.brand || "品牌"} · ${b.reqName || "未命名"}`;
       persist();
     });
   }
+  function whoText(b) { return b.category || "待填品类"; }
 
   function renderBlock(b, i) {
     const block = el("div", "rm-block"); b._el = block;
     const head = el("div", "rm-head");
     head.appendChild(el("div", "num", String(i + 1)));
-    head.appendChild(el("div", "who", `${b.brand || "品牌"} · ${b.reqName || "未命名"}`));
+    head.appendChild(el("div", "who", whoText(b)));
     block.appendChild(head);
 
     // 参考图
     const refsEl = el("div", "rm-refs"); b._refsEl = refsEl; block.appendChild(refsEl); renderRefs(b);
-
-    // 需求名
-    block.appendChild(fieldLabel("需求名"));
-    const name = el("input"); name.type = "text"; name.placeholder = "给这个产品起个名字，如「夏季解腻冰饮」"; bindInput(name, b, "reqName"); block.appendChild(name);
-
-    // 品牌
-    block.appendChild(fieldLabel("品牌"));
-    block.appendChild(brandRow(b));
 
     // 需求描述
     block.appendChild(fieldLabel("需求描述"));
@@ -221,7 +269,7 @@ window.RD = window.RD || {};
     cat.value = b.category || "";
     const extrasWrap = el("div");
     extrasWrap.appendChild(extrasBox(b));
-    cat.addEventListener("change", () => { b.category = cat.value; b.extras = {}; extrasWrap.innerHTML = ""; extrasWrap.appendChild(extrasBox(b)); persist(); });
+    cat.addEventListener("change", () => { b.category = cat.value; b.extras = {}; extrasWrap.innerHTML = ""; extrasWrap.appendChild(extrasBox(b)); $(".who", b._el).textContent = whoText(b); persist(); });
     block.appendChild(cat);
     block.appendChild(extrasWrap);
 
@@ -249,7 +297,6 @@ window.RD = window.RD || {};
   function toProductData(b) {
     const extras = (S().categoryExtra[b.category] || []).map((e) => ({ label: e.label, value: b.extras[e.key] || "" }));
     return {
-      brand: b.brand, reqName: (b.reqName || "").trim(), date: new Date(),
       desc: b.desc, present: b.present, avoidOverall: b.avoidOverall,
       refs: b.refs.filter((r) => r.dataURL),
       category: b.category, flavors: b.flavors, flavorNote: b.flavorNote, extras,
@@ -258,15 +305,13 @@ window.RD = window.RD || {};
   }
   function result(msg, isErr) { const r = $("#rmGenResult"); r.hidden = false; r.classList.toggle("err", !!isErr); r.textContent = msg; }
   async function generate() {
-    for (const b of blocks) {
-      if (!b.brand) { toast("每个产品都要选品牌", true); return; }
-      if (!(b.reqName || "").trim()) { toast("每个产品都要填需求名", true); return; }
-    }
+    if (!(batch.reqName || "").trim()) { toast("请先填写总需求名", true); return; }
+    if (!batch.brand) { toast("请先选择品牌", true); return; }
     if (blocks.some((b) => b._refsLoading)) { toast("参考图还在取，请稍候", true); return; }
     const btn = $("#rmGenerate"); btn.disabled = true; status("排版生成中…"); $("#rmGenResult").hidden = true;
     try {
       const products = blocks.map(toProductData);
-      const blob = await window.RD.deck.buildDeckMulti(products, { date: new Date() });
+      const blob = await window.RD.deck.buildDeckMulti(products, { date: new Date(), brand: batch.brand, reqName: (batch.reqName || "").trim() });
       const fname = `产品研发需求清单-${window.RD.fs.dateStamp(new Date())}.pptx`;
       window.RD.fs.download(blob, fname);
       clearDraftFor(blocks.map((b) => b.pickId));
