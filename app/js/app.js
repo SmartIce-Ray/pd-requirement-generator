@@ -289,8 +289,10 @@
 
     bindDrop("#dropZone", "#fileInput", addRefFiles, true);
 
-    // 全局粘贴：有图就进参考图
+    // 全局粘贴：有图就进参考图（仅研发需求视图，避免与选品库上传粘贴冲突）
     document.addEventListener("paste", (e) => {
+      const reqView = document.getElementById("view-reqform");
+      if (reqView && reqView.hidden) return;
       const items = [...(e.clipboardData?.items || [])].filter((i) => i.type.startsWith("image/"));
       if (items.length) { addRefFiles(items.map((i) => i.getAsFile()).filter(Boolean)); }
     });

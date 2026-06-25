@@ -1,5 +1,26 @@
 {
-  // Cloudflare Pages 配置：只把 app/ 作为站点根上线（品牌内容文件夹不在其中，不会被部署）。
+  // Cloudflare Pages：app/ 为站点根上线；functions/ 提供 /api/* 后端（Pages Functions）。
+  // 品牌内容文件夹不在 app/ 内，不会被部署。
   "name": "pd-requirement-generator",
-  "pages_build_output_dir": "app"
+  "pages_build_output_dir": "app",
+  // 必须：旧兼容日期下 request.formData() 会把上传文件当字符串返回，导致图片上传失败。
+  "compatibility_date": "2025-04-01",
+
+  // 选品库元数据（D1）
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pd-inspirations",
+      "database_id": "49365b82-9001-43f0-94ba-6550d3f47d75",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // 选品库图片（R2）。远端桶需在 CF 启用 R2 后创建（pd-inspirations）；本地 dev 用模拟。
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "pd-inspirations"
+    }
+  ]
 }

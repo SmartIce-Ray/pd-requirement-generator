@@ -19,3 +19,8 @@
 # Node / wrangler
 node_modules/
 .wrangler/
+
+# 本地开发密钥（APP_PASSWORD 等）—— 绝不进仓库
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
