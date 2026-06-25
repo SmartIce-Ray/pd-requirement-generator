@@ -230,6 +230,12 @@ textarea{resize:vertical;line-height:1.5}
 .rm-title{font-weight:600;font-size:16px}
 .rm-bar .grow{flex:1}
 .rm-wrap{max-width:1180px;margin:0 auto;padding:18px 24px}
+.rm-batch{margin-top:12px}
+.rm-batch-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 22px}
+.rm-batch-card .field-label:first-child{margin-top:0}
+.rm-brand-locked{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border:1.5px solid var(--acc);border-radius:999px;background:var(--acc-soft)}
+.rm-brand-locked .name{font-weight:600;color:var(--acc2);font-size:14px}
+.rm-brand-locked .from{font-size:12px;color:var(--muted)}
 .rm-list{display:flex;flex-direction:column;gap:18px;margin-top:12px}
 .rm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px}
 .rm-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}

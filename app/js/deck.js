@@ -16,6 +16,10 @@
 
   function pad(n) { return String(n).padStart(2, "0"); }
   function fmtDate(d) { d = d || new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+  // 多产品里每个产品的小标题：需求名已是整批共享，故用 需求描述首行 / 品类 / 产品N 来区分单个产品
+  function firstLine(t) { return String(t == null ? "" : t).split("\n")[0].trim(); }
+  function clip(t, n) { t = String(t == null ? "" : t); return t.length > n ? t.slice(0, n) + "…" : t; }
+  function productLabel(prod, i) { return clip(firstLine(prod && prod.desc), 28) || (prod && prod.category) || `产品 ${i + 1}`; }
 
   // —— 文本测量（CJK 约 1 字 1em）——
   // cpl=一行能放多少字；保守估行：减文本框内边距(~0.3in) + 0.88 安全系数，宁可略小不溢出
@@ -75,14 +79,16 @@
     s.addText(fmtDate(data.date), { x: PW - MX - 4, y: 6.62, w: 4, h: 0.35, fontFace: F, fontSize: 12, color: SAND, align: "right" });
   }
   function addCoverList(p, meta) {
+    const brand = meta.brand || "品牌";
+    const reqName = meta.reqName || "研发需求清单";
+    const title = `${brand} · ${reqName}`;
     const s = p.addSlide(); s.background = { color: DARK };
     s.addText("产品研发需求", { x: MX, y: 0.95, w: 10, h: 0.4, fontFace: F, fontSize: 12, color: SAND, charSpacing: 5 });
     s.addShape("rect", { x: MX + 0.02, y: 2.35, w: 0.9, h: 0.05, fill: { color: ACC } });
-    s.addText("研发需求清单", { x: MX, y: 2.62, w: CW, h: 1.2, fontFace: F, fontSize: 46, bold: true, color: SURF, valign: "top" });
-    s.addText(`共 ${meta.count || 0} 个产品`, { x: MX + 0.02, y: 4.15, w: CW, h: 0.5, fontFace: F, fontSize: 18, color: ACC2, charSpacing: 1 });
+    s.addText(title, { x: MX, y: 2.62, w: CW, h: 1.55, fontFace: F, fontSize: fitFont(title, CW, 2, 46, 24), bold: true, color: SURF, valign: "top" });
+    s.addText(`研发需求清单 · 共 ${meta.count || 0} 个产品`, { x: MX + 0.02, y: 4.2, w: CW, h: 0.5, fontFace: F, fontSize: 17, color: ACC2, charSpacing: 1 });
     s.addShape("line", { x: MX, y: 6.5, w: CW, h: 0, line: { color: DLINE, width: 0.75 } });
-    const brands = meta.brands && meta.brands.length ? meta.brands.join("、") : "多品牌";
-    s.addText(`品牌：${brands}`, { x: MX, y: 6.62, w: 8.5, h: 0.35, fontFace: F, fontSize: 12, color: SAND });
+    s.addText(`品牌：${brand}`, { x: MX, y: 6.62, w: 8.5, h: 0.35, fontFace: F, fontSize: 12, color: SAND });
     s.addText(fmtDate(meta.date), { x: PW - MX - 4, y: 6.62, w: 4, h: 0.35, fontFace: F, fontSize: 12, color: SAND, align: "right" });
   }
 
@@ -95,20 +101,18 @@
     const fs = Math.max(10, Math.min(15, Math.floor(rowH * 24)));
     products.forEach((prod, i) => {
       const y = yTop + i * rowH;
-      const brand = prod.brand || "品牌";
-      const reqName = prod.reqName || "未命名需求";
+      const label = productLabel(prod, i);
       if (i > 0) s.addShape("line", { x: MX, y: y, w: CW, h: 0, line: { color: LINE, width: 0.5 } });
       s.addText(pad(i + 1), { x: MX, y: y, w: 0.7, h: rowH, fontFace: F, fontSize: Math.min(14, fs + 1), bold: true, color: ACC, valign: "middle" });
-      s.addText(`${brand} · ${reqName}`, { x: MX + 0.8, y: y, w: CW - 3.0, h: rowH, fontFace: F, fontSize: fs, color: INK, valign: "middle" });
-      if (prod.category) s.addText(prod.category, { x: PW - MX - 2.0, y: y, w: 2.0, h: rowH, fontFace: F, fontSize: Math.max(9, fs - 1), color: MUTED, align: "right", valign: "middle" });
+      s.addText(label, { x: MX + 0.8, y: y, w: CW - 3.0, h: rowH, fontFace: F, fontSize: fs, color: INK, valign: "middle" });
+      if (prod.category && prod.category !== label) s.addText(prod.category, { x: PW - MX - 2.0, y: y, w: 2.0, h: rowH, fontFace: F, fontSize: Math.max(9, fs - 1), color: MUTED, align: "right", valign: "middle" });
     });
   }
 
   // ===== ① 需求描述 =====
   function addDescPage(ctx, data, headLabel, headTitle) {
-    const reqName = data.reqName || "未命名需求";
     const s = newContent(ctx, headLabel, headTitle);
-    const desc = data.desc || reqName;
+    const desc = data.desc || data.reqName || "（待填需求描述）";
     const items = [];
     if (data.present) items.push(["呈现要点", data.present, false]);
     if (data.avoidOverall) items.push(["整体不要 / 规避", data.avoidOverall, true]);
@@ -242,12 +246,13 @@
     meta = meta || {};
     const p = newDeck();
     const { totalPages } = multiDeckPlan(products);
-    const brandsInvolved = [...new Set(products.map((pr) => pr.brand).filter(Boolean))];
-    const ctx = { p, foot: `产品研发需求清单 · ${fmtDate(meta.date)}`, pageNo: 1, totalPages };
-    addCoverList(p, { date: meta.date, count: products.length, brands: brandsInvolved });
+    const brand = meta.brand || "品牌";
+    const reqName = meta.reqName || "研发需求清单";
+    const ctx = { p, foot: `${brand} · ${reqName}`, pageNo: 1, totalPages };
+    addCoverList(p, { date: meta.date, count: products.length, brand: meta.brand, reqName: meta.reqName });
     addTocPage(ctx, products);
     products.forEach((prod, i) => {
-      const tag = `${prod.brand || "品牌"} · ${prod.reqName || "未命名需求"}`;
+      const tag = productLabel(prod, i);
       const label = pad(i + 1);
       addDescPage(ctx, prod, label, `${tag} ｜ 需求描述`);
       addRefPages(ctx, prod, label, `${tag} ｜ 参考图`);
