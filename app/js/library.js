@@ -6,7 +6,6 @@ window.RD = window.RD || {};
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
   let config = { brands: [], categories: [] };
-  const filter = { brand: "", category: "", untagged: false };
   let selectMode = false;
   const selected = new Map(); // id -> item
   let items = [];
@@ -58,7 +57,7 @@ window.RD = window.RD || {};
     catch (e) { showLogin(); if (e.status !== 401) toast(e.message || "加载失败", true); }
   }
   function showLogin() { $("#loginScreen").hidden = false; $("#libMain").hidden = true; }
-  function showLibrary() { $("#loginScreen").hidden = true; $("#libMain").hidden = false; renderFilters(); loadGallery(); }
+  function showLibrary() { $("#loginScreen").hidden = true; $("#libMain").hidden = false; loadGallery(); }
   async function doLogin() {
     const pw = $("#loginPw").value;
     $("#loginErr").textContent = "";
@@ -73,47 +72,48 @@ window.RD = window.RD || {};
     finally { btn.disabled = false; }
   }
 
-  // ---------- 筛选 ----------
-  function chip(text, sel, onClick) {
-    const b = document.createElement("button"); b.type = "button"; b.className = "filter-chip" + (sel ? " sel" : ""); b.textContent = text;
-    b.addEventListener("click", onClick); return b;
-  }
-  function flabel(text) { const s = document.createElement("span"); s.className = "filter-label"; s.textContent = text; return s; }
-  function renderFilters() {
-    const fb = $("#filterBrands"); fb.innerHTML = ""; fb.appendChild(flabel("品牌"));
-    fb.appendChild(chip("全部", !filter.brand, () => { filter.brand = ""; refresh(); }));
-    config.brands.forEach((b) => fb.appendChild(chip(b.name, filter.brand === b.name, () => { filter.brand = b.name; refresh(); })));
-
-    const fc = $("#filterCats"); fc.innerHTML = ""; fc.appendChild(flabel("分类"));
-    fc.appendChild(chip("全部", !filter.category && !filter.untagged, () => { filter.category = ""; filter.untagged = false; refresh(); }));
-    fc.appendChild(chip("未整理", filter.untagged, () => { filter.untagged = true; filter.category = ""; refresh(); }));
-    config.categories.forEach((c) => fc.appendChild(chip(c.name, !filter.untagged && filter.category === c.name, () => { filter.category = c.name; filter.untagged = false; refresh(); })));
-  }
-  function refresh() { renderFilters(); loadGallery(); }
-
   // ---------- 画廊 ----------
   async function loadGallery() {
     const g = $("#gallery"), empty = $("#galleryEmpty");
     try {
-      const data = await api.list(filter);
+      const data = await api.list();
       items = data.items || [];
       g.innerHTML = "";
       if (!items.length) {
         empty.hidden = false; empty.innerHTML = "";
         const big = document.createElement("div"); big.className = "big";
         const sub = document.createElement("div");
-        const filtered = filter.brand || filter.category || filter.untagged;
-        big.textContent = filtered ? "没有符合条件的选品" : "还没有选品";
-        sub.textContent = filtered ? "换个筛选，或上传新灵感。" : "点「+ 上传灵感」把刷到的产品图存进来。";
+        big.textContent = "还没有上传记录";
+        sub.textContent = "点「+ 上传灵感」把刷到的产品图存进来。";
         empty.appendChild(big); empty.appendChild(sub);
         return;
       }
       empty.hidden = true;
-      items.forEach((it) => g.appendChild(galleryCard(it)));
+      renderLog(g, items);
     } catch (e) {
       if (e.status === 401) { showLogin(); return; }
       toast(e.message || "加载失败", true);
     }
+  }
+  // 上传记录：按天分组，默认只显示「日期 · N 张」，点开展开那天的缩略图
+  function renderLog(g, list) {
+    const sorted = [...list].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    const groups = new Map();
+    sorted.forEach((it) => { const day = fmtDate(it.created_at); if (!groups.has(day)) groups.set(day, []); groups.get(day).push(it); });
+    groups.forEach((dayItems, day) => g.appendChild(logDayGroup(day, dayItems)));
+  }
+  function logDayGroup(day, dayItems) {
+    const wrap = document.createElement("div"); wrap.className = "log-group";
+    const head = document.createElement("button"); head.type = "button"; head.className = "log-day";
+    const dd = document.createElement("span"); dd.textContent = day;
+    const cc = document.createElement("span"); cc.className = "count"; cc.textContent = `· ${dayItems.length} 张`;
+    const chev = document.createElement("span"); chev.className = "chev"; chev.textContent = "›";
+    head.append(dd, cc, chev);
+    const body = document.createElement("div"); body.className = "log-day-body";
+    dayItems.forEach((it) => body.appendChild(galleryCard(it)));
+    head.addEventListener("click", () => { const open = head.classList.toggle("open"); body.classList.toggle("open", open); });
+    wrap.append(head, body);
+    return wrap;
   }
   function galleryCard(it) {
     const c = document.createElement("div"); c.className = "insp-card" + (selected.has(it.id) ? " sel" : ""); c.dataset.id = it.id;
@@ -126,19 +126,65 @@ window.RD = window.RD || {};
     else { const t = document.createElement("span"); t.className = "tag untagged"; t.textContent = "未整理"; tags.appendChild(t); }
     meta.appendChild(tags);
     if (it.notes) { const n = document.createElement("div"); n.className = "note"; n.textContent = it.notes; meta.appendChild(n); }
-    const d = document.createElement("div"); d.className = "date"; d.textContent = fmtDate(it.created_at); meta.appendChild(d);
     c.append(check, img, meta);
     c.addEventListener("click", () => { if (selectMode) toggleSelect(it, c); else openDetail(it); });
     return c;
   }
 
   // ---------- 选品模式 ----------
+  let selBrand = ""; // 筛选："" 全部 / "__untagged__" 未打标 / 品牌名
   function setSelectMode(on) {
-    selectMode = on; selected.clear();
+    selectMode = on; selected.clear(); selBrand = "";
     $("#gallery").classList.toggle("selectable", on);
+    $("#selFilter").hidden = !on;
     const btn = $("#btnSelectMode"); btn.textContent = on ? "退出选品" : "选品模式"; btn.classList.toggle("sel", on);
-    if (!on) $$(".insp-card.sel").forEach((c) => c.classList.remove("sel"));
+    // 进选品模式：所有天自动展开；退出：收回折叠
+    $$(".log-day", $("#gallery")).forEach((h) => h.classList.toggle("open", on));
+    $$(".log-day-body", $("#gallery")).forEach((b) => b.classList.toggle("open", on));
+    if (on) { renderSelFilter(); applySelFilter(); }
+    else {
+      $$(".insp-card.sel").forEach((c) => c.classList.remove("sel"));
+      $$(".log-group, .insp-card", $("#gallery")).forEach((el) => (el.style.display = ""));
+    }
     updateSelbar();
+  }
+  function renderSelFilter() {
+    const bar = $("#selFilter"); bar.innerHTML = "";
+    const mk = (label, val) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "filter-chip" + (selBrand === val ? " sel" : "");
+      b.dataset.val = val; b.textContent = label;
+      b.addEventListener("click", () => setSelBrand(val));
+      return b;
+    };
+    bar.appendChild(mk("全部", ""));
+    config.brands.forEach((br) => bar.appendChild(mk(br.name, br.name)));
+    bar.appendChild(mk("未打标", "__untagged__"));
+  }
+  function setSelBrand(val) {
+    selBrand = val;
+    selected.clear(); $$(".insp-card.sel").forEach((c) => c.classList.remove("sel")); // 切筛选清空已选（Ray 定）
+    $$("#selFilter .filter-chip").forEach((c) => c.classList.toggle("sel", c.dataset.val === val));
+    applySelFilter();
+    updateSelbar();
+  }
+  function matchBrand(it) {
+    if (!selBrand) return true;
+    if (selBrand === "__untagged__") return !((it.brands || []).length);
+    return (it.brands || []).includes(selBrand);
+  }
+  function applySelFilter() {
+    const byId = new Map(items.map((it) => [String(it.id), it]));
+    $$(".log-group", $("#gallery")).forEach((group) => {
+      let visible = 0;
+      $$(".insp-card", group).forEach((card) => {
+        const it = byId.get(card.dataset.id);
+        const show = it ? matchBrand(it) : true;
+        card.style.display = show ? "" : "none";
+        if (show) visible++;
+      });
+      group.style.display = visible ? "" : "none";
+    });
   }
   function toggleSelect(it, cardEl) {
     if (selected.has(it.id)) { selected.delete(it.id); cardEl.classList.remove("sel"); }
