@@ -26,18 +26,19 @@ window.RD = window.RD || {};
 
   const api = {
     onUnauth(fn) { onUnauth = fn; },
-    login(password) {
+    login(name, password) {
       return req("/api/login", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ name, password }),
       });
     },
+    logout() { return req("/api/logout", { method: "POST" }); },
     config() { return req("/api/config"); },
     list(filters = {}) {
       const qs = new URLSearchParams();
       if (filters.brand) qs.set("brand", filters.brand);
-      if (filters.untagged) qs.set("untagged", "1");
-      else if (filters.category) qs.set("category", filters.category);
+      if (filters.category) qs.set("category", filters.category);
+      if (filters.uploader) qs.set("uploader", filters.uploader);
       const q = qs.toString();
       return req("/api/inspirations" + (q ? "?" + q : ""));
     },
@@ -56,6 +57,21 @@ window.RD = window.RD || {};
       });
     },
     delCategory(id) { return req("/api/categories/" + encodeURIComponent(id), { method: "DELETE" }); },
+    // 账号管理（admin）
+    listUsers() { return req("/api/users"); },
+    createUser(body) {
+      return req("/api/users", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    },
+    resetUserPassword(id, password) {
+      return req("/api/users/" + encodeURIComponent(id), {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+    },
+    deleteUser(id) { return req("/api/users/" + encodeURIComponent(id), { method: "DELETE" }); },
     imgUrl(id) { return "/api/img/" + encodeURIComponent(id); },
   };
 

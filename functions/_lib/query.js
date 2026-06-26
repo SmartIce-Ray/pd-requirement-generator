@@ -10,20 +10,19 @@ export function validateBrands(input) {
   return [...new Set(arr.filter((b) => BRAND_NAMES.includes(b)))];
 }
 
-// 构建总览列表查询（参数化，防注入）。untagged 优先于 category。
-export function buildListQuery({ brand, category, untagged } = {}) {
+// 构建总览列表查询（参数化，防注入）。LEFT JOIN users 取上传人名
+// （账号被删后为 NULL → 前端显示「已删除」）。筛选维度：品牌 / 分类 / 上传人。
+export function buildListQuery({ brand, category, uploader } = {}) {
   const where = [];
   const params = [];
-  if (brand) { where.push("brands LIKE ?"); params.push(`%"${brand}"%`); }
-  if (untagged) {
-    where.push("category IS NULL");
-  } else if (category) {
-    where.push("category = ?"); params.push(category);
-  }
+  if (brand) { where.push("i.brands LIKE ?"); params.push(`%"${brand}"%`); }
+  if (category) { where.push("i.category = ?"); params.push(category); }
+  if (uploader) { where.push("i.uploader_id = ?"); params.push(uploader); }
   const sql =
-    "SELECT * FROM inspirations" +
+    "SELECT i.*, u.name AS uploader_name FROM inspirations i " +
+    "LEFT JOIN users u ON u.id = i.uploader_id" +
     (where.length ? " WHERE " + where.join(" AND ") : "") +
-    " ORDER BY created_at DESC";
+    " ORDER BY i.created_at DESC";
   return { sql, params };
 }
 
@@ -38,5 +37,7 @@ export function parseRow(row) {
     category: row.category,
     notes: row.notes,
     created_at: row.created_at,
+    uploader_id: row.uploader_id || null,
+    uploader_name: row.uploader_name || null,
   };
 }
