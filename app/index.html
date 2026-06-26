@@ -11,38 +11,60 @@
     <div class="topbar-in">
       <div class="brandmark"><span class="dot"></span>选品 · 研发</div>
       <div class="view-switch" id="viewSwitch">
-        <button type="button" data-view="library" class="active">选品库</button>
-        <button type="button" data-view="reqform">研发需求</button>
+        <button type="button" data-view="home" class="active">选品库</button>
+        <button type="button" data-view="reqform" data-admin hidden>研发需求</button>
       </div>
-      <div class="topbar-right" id="reqformTools">
-        <span id="saveStatus" class="save-status" aria-live="polite"></span>
-        <button id="btnImport" class="btn-ghost" type="button">导入草稿</button>
-        <button id="btnExport" class="btn-ghost" type="button">导出草稿</button>
-        <input id="fileImport" type="file" accept="application/json" hidden />
+      <div class="topbar-right">
+        <span id="userBox" class="user-box" hidden>
+          <span id="userName" class="user-name"></span>
+          <button id="btnAccount" class="btn-ghost" type="button" data-admin hidden>账号管理</button>
+          <button id="btnLogout" class="link" type="button">登出</button>
+        </span>
+        <span id="reqformTools" class="reqform-tools" hidden>
+          <span id="saveStatus" class="save-status" aria-live="polite"></span>
+          <button id="btnImport" class="btn-ghost" type="button">导入草稿</button>
+          <button id="btnExport" class="btn-ghost" type="button">导出草稿</button>
+          <input id="fileImport" type="file" accept="application/json" hidden />
+        </span>
       </div>
     </div>
   </header>
 
-  <!-- ============ 选品库视图 ============ -->
-  <div id="view-library">
-    <div id="loginScreen" class="login-screen" hidden>
-      <div class="card">
-        <h2>选品灵感库</h2>
-        <p>输入密码进入你的私人选品库</p>
-        <div id="loginErr" class="login-err" aria-live="polite"></div>
-        <input id="loginPw" type="password" placeholder="密码" autocomplete="current-password" />
-        <button id="loginBtn" class="btn-primary" type="button">进入</button>
-      </div>
+  <!-- ============ 登录 ============ -->
+  <div id="loginScreen" class="login-screen" hidden>
+    <div class="card">
+      <h2>选品灵感库</h2>
+      <p>输入账号与密码进入</p>
+      <div id="loginErr" class="login-err" aria-live="polite"></div>
+      <input id="loginName" type="text" placeholder="姓名" autocomplete="username" />
+      <input id="loginPw" type="password" placeholder="密码" autocomplete="current-password" />
+      <button id="loginBtn" class="btn-primary" type="button">进入</button>
     </div>
+  </div>
 
-    <div id="libMain" class="lib" hidden>
-      <div class="lib-toolbar">
+  <!-- ============ 首页：两个按钮 + 日志 ============ -->
+  <div id="view-home" hidden>
+    <div class="home">
+      <div class="home-actions">
         <button id="btnUpload" class="btn-primary" type="button">+ 上传灵感</button>
-        <span class="grow"></span>
-        <button id="btnSelectMode" class="btn-ghost" type="button">选品模式</button>
+        <button id="btnOpenLibrary" class="btn-ghost" type="button">产品灵感库 →</button>
       </div>
-      <div class="sel-filter" id="selFilter" hidden></div>
-      <div id="gallery" class="gallery" aria-live="polite"></div>
+      <div class="home-log-head">日志</div>
+      <div id="homeLog" class="gallery" aria-live="polite"></div>
+      <div id="homeLogEmpty" class="empty" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ 产品灵感库：全部图 + 筛选（所有人）+ 选品（admin）============ -->
+  <div id="view-library" hidden>
+    <div class="lib">
+      <div class="lib-toolbar">
+        <button id="btnBackHome" class="btn-ghost" type="button">← 返回首页</button>
+        <span class="grow"></span>
+        <button id="btnSelectMode" class="btn-ghost" type="button" data-admin hidden>选品</button>
+      </div>
+      <div class="sel-filter" id="libFilter"></div>
+      <div id="gallery" class="gallery grid" aria-live="polite"></div>
       <div id="galleryEmpty" class="empty" hidden></div>
     </div>
   </div>
@@ -52,6 +74,18 @@
     <span class="count" id="selCount">已选 0</span>
     <button id="btnGenReq" class="btn-primary" type="button">生成研发需求</button>
     <button id="btnSelCancel" class="link" type="button">取消</button>
+  </div>
+
+  <!-- ============ 账号管理（admin）============ -->
+  <div id="view-account" hidden>
+    <div class="account">
+      <div class="lib-toolbar">
+        <button id="btnBackHome2" class="btn-ghost" type="button">← 返回首页</button>
+        <span class="grow"></span>
+        <button id="btnAddUser" class="btn-primary" type="button">+ 开通账号</button>
+      </div>
+      <div id="userList" class="user-list" aria-live="polite"></div>
+    </div>
   </div>
 
   <!-- ============ 研发需求视图（原单产品表单）============ -->
@@ -173,6 +207,7 @@
     <div class="modal-card wide">
       <div class="modal-head"><h3>上传灵感</h3><button class="modal-close" type="button" data-close aria-label="关闭">×</button></div>
       <div class="modal-body">
+        <p class="sec-hint">每张图都要选「品牌 + 分类」才能入库；想法可空。</p>
         <div id="upDrop" class="dropzone" tabindex="0" role="button" aria-label="选择图片">
           <div class="dz-title">
             <span class="dz-pc">拖入或点击选图（可多选）</span>
@@ -203,6 +238,19 @@
     </div>
   </div>
 
+  <!-- 账号弹窗（开通 / 改密码）-->
+  <div id="userModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <div class="modal-head"><h3 id="userModalTitle">开通账号</h3><button class="modal-close" type="button" data-close aria-label="关闭">×</button></div>
+      <div class="modal-body" id="userModalBody"></div>
+      <div class="modal-foot">
+        <span id="userModalErr" class="login-err"></span>
+        <button id="userModalSave" class="btn-primary" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="vendor/pptxgen.bundle.js?v=__BUILD__"></script>
@@ -213,6 +261,11 @@
   <script src="js/fs.js?v=__BUILD__"></script>
   <script src="js/deck.js?v=__BUILD__"></script>
   <script src="js/apiclient.js?v=__BUILD__"></script>
+  <script src="js/library.util.js?v=__BUILD__"></script>
+  <script src="js/library.gallery.js?v=__BUILD__"></script>
+  <script src="js/library.upload.js?v=__BUILD__"></script>
+  <script src="js/library.detail.js?v=__BUILD__"></script>
+  <script src="js/library.account.js?v=__BUILD__"></script>
   <script src="js/library.js?v=__BUILD__"></script>
   <script src="js/reqform-multi.js?v=__BUILD__"></script>
   <script src="js/app.js?v=__BUILD__"></script>

@@ -1,6 +1,7 @@
-// 分类：GET 列表 / POST 新增自定义分类。
+// 分类：GET 列表(所有人) / POST 新增自定义分类(仅 admin —— 分类是受控词表，防多人加类目搞碎)。
 import { json, fail, guard } from "../_lib/respond.js";
 import { genId } from "../_lib/ids.js";
+import { requireAdmin } from "../_lib/access.js";
 
 export async function onRequestGet(context) {
   return guard("categories_list", async () => {
@@ -14,6 +15,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   return guard("categories_create", async () => {
     const { request, env } = context;
+    const denied = requireAdmin(context); if (denied) return denied;
     let body;
     try { body = await request.json(); } catch { return fail("请求格式错误", 400); }
     const name = (body.name || "").trim();

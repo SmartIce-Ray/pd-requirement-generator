@@ -262,3 +262,57 @@ textarea{resize:vertical;line-height:1.5}
   *{transition:none!important;animation-duration:.001ms!important}
   html{scroll-behavior:auto}
 }
+
+/* ============ 多人协作：首页 / 产品灵感库网格 / 账号管理 ============ */
+.home{max-width:1180px;margin:0 auto;padding:20px 24px}
+.home-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.home-log-head{font-size:14px;font-weight:600;color:var(--ink2);margin:0 0 8px}
+
+/* 头部用户条 */
+.user-box{display:flex;align-items:center;gap:10px}
+.reqform-tools{display:flex;align-items:center;gap:10px}
+.user-name{font-size:13px;color:var(--ink2);font-weight:600}
+
+/* 首页日志：天 → 人 子组（覆盖原 .log-day-body 的 grid 直排）*/
+.log-day-body.open{display:block;grid-template-columns:none}
+.log-user{margin:10px 0 4px}
+.log-user-head{font-size:13px;font-weight:600;color:var(--acc2);margin:6px 0 8px;border-left:2px solid var(--acc);padding-left:8px}
+.log-user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+
+/* 产品灵感库：全部图平铺网格 */
+.gallery.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card-uploader{font-size:11px;color:var(--sand);margin-top:4px}
+
+/* 详情：上传人 + 只读提示 */
+.detail-uploader{font-size:12px;color:var(--muted);margin-bottom:10px}
+.detail-readonly{margin-top:12px;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 12px}
+
+/* 筛选行：品牌 chips + 分类/上传人 下拉 */
+.filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.filter-select{width:auto;min-width:120px;padding:7px 10px;font-size:13px}
+
+/* 上传卡未填齐：标红提示 */
+.up-card.incomplete{border-color:var(--acc2);box-shadow:0 0 0 2px rgba(176,58,46,.12)}
+
+/* 账号管理 */
+.account{max-width:1180px;margin:0 auto;padding:20px 24px}
+.user-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.user-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.user-info{display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap}
+.user-info .u-name{font-weight:600;color:var(--ink)}
+.user-info .u-role{font-size:12px;padding:2px 10px;border-radius:999px;background:var(--acc-soft);color:var(--acc2)}
+.user-info .u-count{font-size:12px;color:var(--muted)}
+.user-ops{display:flex;gap:8px}
+.btn-ghost.danger{color:var(--acc2)}
+.btn-ghost.danger:hover{border-color:var(--acc2);color:var(--acc2)}
+
+@media (max-width:560px){
+  .home,.account{padding:16px}
+  .gallery.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+  .log-user-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+  .home-actions{flex-direction:column}
+  .home-actions .btn-primary,.home-actions .btn-ghost{width:100%}
+  .filter-select{flex:1}
+  .user-row{flex-direction:column;align-items:flex-start}
+  .user-ops{width:100%}
+}
