@@ -54,8 +54,13 @@ window.RD = window.RD || {};
     ["#view-home", "#view-library", "#view-creative", "#view-account", "#view-reqform", "#view-reqmulti"].forEach((s) => { const e = $(s); if (e) e.hidden = true; });
     $("#selbar").hidden = true;
   }
-  function showLogin() { $("#loginScreen").hidden = false; hideAllViews(); $("#userBox").hidden = true; }
-  function showApp() { $("#loginScreen").hidden = true; setView("home"); loadData(); }
+  function closeUserMenu() {
+    const m = $("#userMenu"); if (m) m.classList.remove("open");
+    const b = $("#btnMore"); if (b) b.setAttribute("aria-expanded", "false");
+  }
+  // 未登录不露顶部导航（选品库/创意/研发切换只对登录用户有意义）。
+  function showLogin() { $("#loginScreen").hidden = false; hideAllViews(); $("#userBox").hidden = true; $("#viewSwitch").hidden = true; $("#reqformTools").hidden = true; closeUserMenu(); }
+  function showApp() { $("#loginScreen").hidden = true; $("#viewSwitch").hidden = false; setView("home"); loadData(); }
 
   async function boot() {
     try { const cfg = await api.config(); applyConfig(cfg); showApp(); }
@@ -91,8 +96,14 @@ window.RD = window.RD || {};
     $("#loginBtn").addEventListener("click", doLogin);
     $("#loginName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#loginPw").focus(); });
     $("#loginPw").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
-    $("#btnLogout").addEventListener("click", doLogout);
-    $("#btnAccount").addEventListener("click", () => setView("account"));
+    $("#btnLogout").addEventListener("click", () => { closeUserMenu(); doLogout(); });
+    $("#btnAccount").addEventListener("click", () => { closeUserMenu(); setView("account"); });
+    $("#btnMore").addEventListener("click", (e) => {
+      e.stopPropagation(); // 别让下面的 document 兜底关闭把这次开合又立刻关掉
+      const open = $("#userMenu").classList.toggle("open");
+      $("#btnMore").setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("click", (e) => { if (!$("#userBox").contains(e.target)) closeUserMenu(); });
     $("#btnUpload").addEventListener("click", () => L.upload.open("product"));
     $("#btnUploadCreative").addEventListener("click", () => L.upload.open("creative"));
     $("#btnOpenLibrary").addEventListener("click", () => setView("library"));
@@ -103,7 +114,7 @@ window.RD = window.RD || {};
     $("#btnGenReq").addEventListener("click", () => L.gallery.gen());
     $("#btnAddUser").addEventListener("click", () => L.account.openCreate());
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") ["#uploadModal", "#detailModal", "#userModal"].forEach((s) => { const m = $(s); if (m) m.hidden = true; });
+      if (e.key === "Escape") { ["#uploadModal", "#detailModal", "#userModal"].forEach((s) => { const m = $(s); if (m) m.hidden = true; }); closeUserMenu(); }
     });
 
     // 各功能模块的弹窗/拖拽事件

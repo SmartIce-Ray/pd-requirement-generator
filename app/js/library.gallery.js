@@ -45,6 +45,7 @@
 
   function afterFilterChange() {
     if (state.selectMode) { state.selected.clear(); updateSelbar(); } // 切筛选清空已选（Ray 定）
+    renderFilter(); // 重绘筛选条，品牌 chip 的选中高亮才会跟着移动（下拉是原生 select 自会更新）
     renderGrid();
   }
 
