@@ -12,19 +12,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # 缓存破坏：把 index.html 里资源的 ?v=__BUILD__ 占位换成本次提交 SHA。
       # CF Pages 给静态资源固定 max-age=14400 且 _headers 改不动它，靠版本化 URL 保证
       # 每次部署浏览器都拉到新 JS/CSS（HTML 是 max-age=0 每次最新），杜绝新HTML+旧JS错配。
       - name: Cache-bust assets with commit SHA
         run: sed -i "s/__BUILD__/${GITHUB_SHA}/g" app/index.html
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # 锁 wrangler 4.x：action 默认装的 3.90 不支持 wrangler.jsonc（3.91+ 才支持），
-          # 会读不到下面的 pages_build_output_dir 而报“必须指定资源目录”。
+          # 钉住 wrangler 版本：v4 action 默认装 wrangler "latest"，钉死可复现、防版本漂移
+          # 出意外。必须 ≥3.91（wrangler.jsonc 支持）否则读不到 pages_build_output_dir、
+          # 报“必须指定资源目录”；4.x 满足且是当前主线。
           wranglerVersion: '4.84.0'
           # wrangler.jsonc 里 pages_build_output_dir=app，只上线前端；--branch=main = 生产
           command: pages deploy --branch=main
