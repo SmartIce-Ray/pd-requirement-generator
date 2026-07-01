@@ -8,7 +8,8 @@ window.RD.lib = (function () {
   const state = {
     config: { brands: [], categories: [] },
     me: null,                 // { uid, name, role }
-    items: [],                // 全部灵感（首页日志 + 产品灵感库共用）
+    items: [],                // 产品灵感（首页日志 + 产品灵感库；只装 kind=product）
+    creativeItems: [],        // 创意灵感（创意灵感库；只装 kind=creative）
     view: "home",
     selectMode: false,
     selected: new Map(),      // id -> item
@@ -16,6 +17,7 @@ window.RD.lib = (function () {
     filterCategory: "",
     filterUploader: "",
     upCards: [],
+    uploadKind: "product",    // 当前上传弹窗用途：product | creative
     detailItem: null,
   };
 
@@ -80,28 +82,33 @@ window.RD.lib = (function () {
   }
 
   function setView(view) {
+    // 离开产品灵感库时退出选品态，避免残留 selectMode 让其它视图卡片点击误触勾选。
+    if (view !== "library" && state.selectMode && L.gallery) L.gallery.setSelectMode(false);
     state.view = view;
     document.body.dataset.view = view;
     $("#view-home").hidden = view !== "home";
     $("#view-library").hidden = view !== "library";
+    $("#view-creative").hidden = view !== "creative";
     $("#view-account").hidden = view !== "account";
     $("#view-reqform").hidden = view !== "reqform";
     const rm = $("#view-reqmulti"); if (rm) rm.hidden = view !== "reqmulti";
     $("#reqformTools").hidden = view !== "reqform";
-    $$("#viewSwitch button").forEach((b) => {
-      const active = b.dataset.view === "reqform" ? view === "reqform" : view !== "reqform";
-      b.classList.toggle("active", active);
-    });
+    // 顶部切换高亮按板块分组：home/library/account→选品库，creative→创意灵感库，reqform/reqmulti→研发需求。
+    const group = view === "creative" ? "creative"
+      : (view === "reqform" || view === "reqmulti") ? "reqform"
+      : "home";
+    $$("#viewSwitch button").forEach((b) => b.classList.toggle("active", b.dataset.view === group));
     $("#selbar").hidden = !(view === "library" && state.selectMode && state.selected.size > 0);
     if (view === "home" && L.home) L.home.render();
     if (view === "library" && L.gallery) L.gallery.render();
+    if (view === "creative" && L.creative) L.creative.render();
     if (view === "account" && L.account) L.account.render();
   }
 
-  // 拉全部数据 → 重渲当前视图（首页/产品灵感库）。
+  // 拉产品灵感（kind=product）→ 重渲当前视图（首页/产品灵感库）。创意灵感由 L.creative.reload() 各拉各的。
   async function loadData() {
     try {
-      const data = await api.list();
+      const data = await api.list({ kind: "product" });
       state.items = data.items || [];
     } catch (e) {
       if (e.status === 401) return;

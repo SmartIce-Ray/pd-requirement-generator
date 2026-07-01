@@ -48,7 +48,7 @@ window.RD = window.RD || {};
   }
   // 品牌/分类的真源：优先用 library 从 /api/config 拿到的（后端单一真源 + 含自定义分类）。
   function cfgBrands() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.brands) || window.RD.brands || []; }
-  function cfgCatNames() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.categories) ? c.categories.map((x) => x.name) : (S().categories || []); }
+  function cfgCatNames() { const c = window.RD.library && window.RD.library.getConfig && window.RD.library.getConfig(); return (c && c.categories) ? c.categories.filter((x) => x.kind === "product").map((x) => x.name) : (S().categories || []); }
   // 整批草稿：总需求名 + 品牌，按选品集合（pickId 排序后拼成 key）分别存，换一批不串
   function loadBatches() { try { return JSON.parse(localStorage.getItem(BATCH_KEY)) || {}; } catch { return {}; } }
   // key 由 ids 派生（不传则用当前 blocks）；clearDraftFor 传入要清的 ids，保证存/清同一把 key

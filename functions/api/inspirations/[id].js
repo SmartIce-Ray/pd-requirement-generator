@@ -12,7 +12,7 @@ export async function onRequestPatch(context) {
     try { body = await request.json(); } catch { return fail("请求格式错误", 400); }
 
     const existing = await env.DB.prepare(
-      "SELECT id, uploader_id FROM inspirations WHERE id = ?"
+      "SELECT id, uploader_id, kind FROM inspirations WHERE id = ?"
     ).bind(id).first();
     if (!existing) return fail("记录不存在", 404);
     if (!isOwnerOrAdmin(existing, getUser(context))) return fail("无权修改这条", 403);
@@ -21,7 +21,8 @@ export async function onRequestPatch(context) {
     const vals = [];
     if (body.brands !== undefined) {
       const bl = validateBrands(body.brands);
-      if (!bl.length) return fail("品牌不能清空", 400);
+      // 产品必须有品牌；创意可空（通用 / 暂不涉及品牌）。
+      if (existing.kind !== "creative" && !bl.length) return fail("品牌不能清空", 400);
       sets.push("brands = ?"); vals.push(JSON.stringify(bl));
     }
     if (body.category !== undefined) {

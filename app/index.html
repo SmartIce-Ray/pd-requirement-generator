@@ -12,6 +12,7 @@
       <div class="brandmark"><span class="dot"></span><span class="bm-text">选品 · 研发</span></div>
       <div class="view-switch" id="viewSwitch">
         <button type="button" data-view="home" class="active">选品库</button>
+        <button type="button" data-view="creative">创意灵感库</button>
         <button type="button" data-view="reqform" data-admin hidden>研发需求</button>
       </div>
       <div class="topbar-right">
@@ -74,6 +75,19 @@
     <span class="count" id="selCount">已选 0</span>
     <button id="btnGenReq" class="btn-primary" type="button">生成研发需求</button>
     <button id="btnSelCancel" class="link" type="button">取消</button>
+  </div>
+
+  <!-- ============ 创意灵感库：设计视觉 / 活动创意 / 周边（独立板块 · 无选品 · 不生成 PPT）============ -->
+  <div id="view-creative" hidden>
+    <div class="lib">
+      <div class="lib-toolbar">
+        <button id="btnUploadCreative" class="btn-primary" type="button">+ 上传创意</button>
+        <span class="grow"></span>
+      </div>
+      <div class="sel-filter" id="creativeFilter"></div>
+      <div id="creativeGallery" class="gallery grid" aria-live="polite"></div>
+      <div id="creativeEmpty" class="empty" hidden></div>
+    </div>
   </div>
 
   <!-- ============ 账号管理（admin）============ -->
@@ -266,6 +280,7 @@
   <script src="js/library.upload.js?v=__BUILD__"></script>
   <script src="js/library.detail.js?v=__BUILD__"></script>
   <script src="js/library.account.js?v=__BUILD__"></script>
+  <script src="js/library.creative.js?v=__BUILD__"></script>
   <script src="js/library.js?v=__BUILD__"></script>
   <script src="js/reqform-multi.js?v=__BUILD__"></script>
   <script src="js/app.js?v=__BUILD__"></script>

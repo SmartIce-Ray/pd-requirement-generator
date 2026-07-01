@@ -6,12 +6,12 @@ import { getUser } from "../_lib/access.js";
 export async function onRequestGet(context) {
   return guard("config", async () => {
     const res = await context.env.DB.prepare(
-      "SELECT id, name FROM categories ORDER BY sort_order, name"
+      "SELECT id, name, kind FROM categories ORDER BY sort_order, name"
     ).all();
     const u = getUser(context);
     return json({
       brands: BRANDS,
-      categories: (res.results || []).map((c) => ({ id: c.id, name: c.name })),
+      categories: (res.results || []).map((c) => ({ id: c.id, name: c.name, kind: c.kind || "product" })),
       me: u ? { uid: u.uid, name: u.name, role: u.role } : null,
     });
   });
