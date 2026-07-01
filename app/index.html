@@ -10,16 +10,19 @@
   <header class="topbar">
     <div class="topbar-in">
       <div class="brandmark"><span class="dot"></span><span class="bm-text">选品 · 研发</span></div>
-      <div class="view-switch" id="viewSwitch">
+      <div class="view-switch" id="viewSwitch" hidden>
         <button type="button" data-view="home" class="active">选品库</button>
-        <button type="button" data-view="creative">创意灵感库</button>
-        <button type="button" data-view="reqform" data-admin hidden>研发需求</button>
+        <button type="button" data-view="creative"><span class="lbl-full">创意灵感库</span><span class="lbl-short">创意</span></button>
+        <button type="button" data-view="reqform" data-admin hidden><span class="lbl-full">研发需求</span><span class="lbl-short">研发</span></button>
       </div>
       <div class="topbar-right">
         <span id="userBox" class="user-box" hidden>
-          <span id="userName" class="user-name"></span>
-          <button id="btnAccount" class="btn-ghost" type="button" data-admin hidden>账号管理</button>
-          <button id="btnLogout" class="link" type="button">登出</button>
+          <button id="btnMore" class="user-more" type="button" aria-label="账号菜单" aria-expanded="false" aria-haspopup="true">⋯</button>
+          <span id="userMenu" class="user-menu">
+            <span id="userName" class="user-name"></span>
+            <button id="btnAccount" class="btn-ghost" type="button" data-admin hidden>账号管理</button>
+            <button id="btnLogout" class="link" type="button">登出</button>
+          </span>
         </span>
         <span id="reqformTools" class="reqform-tools" hidden>
           <span id="saveStatus" class="save-status" aria-live="polite"></span>
