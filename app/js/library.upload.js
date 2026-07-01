@@ -5,7 +5,9 @@
   const api = L.api;
 
   function cardComplete(c) {
-    return !!c.dataURL && pickedBrands(c.brandsEl).length > 0 && !!c.catEl.value;
+    if (!c.dataURL || !c.catEl.value) return false;
+    if (state.uploadKind === "creative") return true;   // 创意：品牌可空，选了分类即算完整
+    return pickedBrands(c.brandsEl).length > 0;
   }
   function updateUploadState() {
     const ready = state.upCards.filter((c) => c.dataURL);
@@ -14,11 +16,18 @@
     btn.disabled = ready.length === 0 || incomplete.length > 0;
     btn.textContent = ready.length ? `保存全部（${ready.length} 张）` : "保存全部";
     state.upCards.forEach((c) => { if (c.el) c.el.classList.toggle("incomplete", !!c.dataURL && !cardComplete(c)); });
-    $("#upStatus").textContent = (ready.length && incomplete.length) ? `还有 ${incomplete.length} 张未选品牌/分类` : "";
+    const lack = state.uploadKind === "creative" ? "未选分类" : "未选品牌/分类";
+    $("#upStatus").textContent = (ready.length && incomplete.length) ? `还有 ${incomplete.length} 张${lack}` : "";
     $("#upDrop").classList.toggle("small", state.upCards.length > 0);
   }
 
-  function open() {
+  function open(kind) {
+    state.uploadKind = kind === "creative" ? "creative" : "product";
+    const creative = state.uploadKind === "creative";
+    $("#uploadModal .modal-head h3").textContent = creative ? "上传创意" : "上传灵感";
+    $("#uploadModal .modal-body .sec-hint").textContent = creative
+      ? "每张图选「分类」才能入库；品牌可选、想法可空。"
+      : "每张图都要选「品牌 + 分类」才能入库；想法可空。";
     state.upCards = []; $("#upList").innerHTML = ""; $("#upStatus").textContent = "";
     updateUploadState();
     openModal("#uploadModal");
@@ -35,10 +44,11 @@
     (state.config.brands || []).forEach((b) => bp.appendChild(brandOpt(b.name, false)));
     $$(".brand-opt", bp).forEach((x) => (x._onToggle = updateUploadState));
     const catSel = el("select"); catSel.appendChild(opt("", "请选择分类"));
-    (state.config.categories || []).forEach((c) => catSel.appendChild(opt(c.name, c.name)));
+    (state.config.categories || []).filter((c) => c.kind === state.uploadKind).forEach((c) => catSel.appendChild(opt(c.name, c.name)));
     catSel.addEventListener("change", updateUploadState);
     const notes = el("textarea"); notes.rows = 2; notes.placeholder = "想法 / 灵感（可空）";
-    right.append(fieldLabel("品牌（必选，可多选）"), bp, fieldLabel("分类（必选）"), catSel, notes);
+    const brandLabel = state.uploadKind === "creative" ? "品牌（可选，可多选）" : "品牌（必选，可多选）";
+    right.append(fieldLabel(brandLabel), bp, fieldLabel("分类（必选）"), catSel, notes);
     card.append(thumbWrap, right);
     $("#upList").appendChild(card);
     const obj = { dataURL: "", w: 0, h: 0, el: card, thumb, brandsEl: bp, catEl: catSel, notesEl: notes };
@@ -70,7 +80,11 @@
   async function saveUpload() {
     const ready = state.upCards.filter((c) => c.dataURL);
     if (!ready.length) return;
-    if (ready.some((c) => !cardComplete(c))) { toast("每张图都要选品牌和分类才能入库", true); updateUploadState(); return; }
+    const kind = state.uploadKind;
+    if (ready.some((c) => !cardComplete(c))) {
+      toast(kind === "creative" ? "每张图都要选分类才能入库" : "每张图都要选品牌和分类才能入库", true);
+      updateUploadState(); return;
+    }
     const btn = $("#upSaveBtn"); btn.disabled = true;
     let done = 0, fail = 0; const failMsgs = [];
     for (const c of ready) {
@@ -80,13 +94,15 @@
       fd.append("brands", JSON.stringify(pickedBrands(c.brandsEl)));
       fd.append("category", c.catEl.value || "");
       fd.append("notes", c.notesEl.value || "");
+      fd.append("kind", kind);
       try { await api.create(fd); done++; }
       catch (e) { fail++; failMsgs.push(e && e.message); console.error("upload_create_failed", e); if (e.status === 401) break; }
     }
     btn.disabled = false;
     closeModal("#uploadModal");
-    toast(fail ? `已存 ${done} 条，${fail} 条失败（${failMsgs[0] || "未知原因"}）` : `已存 ${done} 条灵感`, !!fail);
-    L.loadData();
+    const label = kind === "creative" ? "创意" : "灵感";
+    toast(fail ? `已存 ${done} 条，${fail} 条失败（${failMsgs[0] || "未知原因"}）` : `已存 ${done} 条${label}`, !!fail);
+    if (kind === "creative") { if (L.creative) L.creative.reload(); } else L.loadData();
   }
 
   function initEvents() {

@@ -10,11 +10,18 @@ export function validateBrands(input) {
   return [...new Set(arr.filter((b) => BRAND_NAMES.includes(b)))];
 }
 
+// 用途 kind 归一：只认 'creative'，其余（缺省/非法/大小写不符/类型不符）一律归 'product'。
+// 默认拒绝方向——读侧(GET)与写侧(POST)都用它，保证任意脏输入都落到产品口径，创意绝不漏进选品。
+export function normalizeKind(x) {
+  return x === "creative" ? "creative" : "product";
+}
+
 // 构建总览列表查询（参数化，防注入）。LEFT JOIN users 取上传人名
-// （账号被删后为 NULL → 前端显示「已删除」）。筛选维度：品牌 / 分类 / 上传人。
-export function buildListQuery({ brand, category, uploader } = {}) {
+// （账号被删后为 NULL → 前端显示「已删除」）。筛选维度：用途 kind / 品牌 / 分类 / 上传人。
+export function buildListQuery({ brand, category, uploader, kind } = {}) {
   const where = [];
   const params = [];
+  if (kind) { where.push("i.kind = ?"); params.push(kind); }
   if (brand) { where.push("i.brands LIKE ?"); params.push(`%"${brand}"%`); }
   if (category) { where.push("i.category = ?"); params.push(category); }
   if (uploader) { where.push("i.uploader_id = ?"); params.push(uploader); }
@@ -36,6 +43,7 @@ export function parseRow(row) {
     brands,
     category: row.category,
     notes: row.notes,
+    kind: row.kind || "product",
     created_at: row.created_at,
     uploader_id: row.uploader_id || null,
     uploader_name: row.uploader_name || null,

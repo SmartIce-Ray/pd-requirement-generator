@@ -5,7 +5,7 @@ import {
 } from "../functions/_lib/auth.js";
 import { hashPassword, verifyPassword } from "../functions/_lib/passwords.js";
 import { requireAdmin, isOwnerOrAdmin, getUser } from "../functions/_lib/access.js";
-import { validateBrands, buildListQuery, parseRow } from "../functions/_lib/query.js";
+import { validateBrands, buildListQuery, parseRow, normalizeKind } from "../functions/_lib/query.js";
 
 describe("genId", () => {
   it("生成 22 位 base62", () => {
@@ -156,10 +156,26 @@ describe("query", () => {
     expect(sql).toContain("i.brands LIKE ?");
     expect(sql).not.toContain("野百灵");
   });
+  it("buildListQuery 按 kind 过滤（产品/创意隔离）", () => {
+    const { sql, params } = buildListQuery({ kind: "creative" });
+    expect(sql).toContain("i.kind = ?");
+    expect(params).toEqual(["creative"]);
+  });
+  it("buildListQuery kind + 品牌：params 与 SQL 占位符同序（kind 在前）", () => {
+    const { sql, params } = buildListQuery({ brand: "野百灵", kind: "product" });
+    expect(params).toEqual(["product", '%"野百灵"%']);
+    // 隔离是安全边界：占位符顺序必须与 params 一一对应，防重构把 SQL/params 两侧拆脱钩。
+    expect(sql.indexOf("i.kind = ?")).toBeLessThan(sql.indexOf("i.brands LIKE ?"));
+  });
+  it("buildListQuery 四筛选全开：WHERE 子句与 params 严格同序", () => {
+    const { sql, params } = buildListQuery({ kind: "creative", brand: "野百灵", category: "设计视觉", uploader: "usr_x" });
+    expect(sql).toContain("WHERE i.kind = ? AND i.brands LIKE ? AND i.category = ? AND i.uploader_id = ?");
+    expect(params).toEqual(["creative", '%"野百灵"%', "设计视觉", "usr_x"]);
+  });
   it("parseRow 带 uploader、不外泄 image_key", () => {
     const row = { id: "x", image_key: "x", image_type: "image/jpeg", brands: '["野百灵"]', category: "菜品", notes: "hi", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" };
     const out = parseRow(row);
-    expect(out).toEqual({ id: "x", image_type: "image/jpeg", brands: ["野百灵"], category: "菜品", notes: "hi", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" });
+    expect(out).toEqual({ id: "x", image_type: "image/jpeg", brands: ["野百灵"], category: "菜品", notes: "hi", kind: "product", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" });
     expect(out.image_key).toBeUndefined();
   });
   it("parseRow 容错坏 JSON + 空 uploader", () => {
@@ -167,5 +183,19 @@ describe("query", () => {
     expect(out.brands).toEqual([]);
     expect(out.uploader_id).toBeNull();
     expect(out.uploader_name).toBeNull();
+  });
+  it("parseRow 带出 kind；缺省归 product", () => {
+    expect(parseRow({ id: "x", brands: "[]", category: null, notes: "", created_at: 1, kind: "creative" }).kind).toBe("creative");
+    expect(parseRow({ id: "y", brands: "[]", category: null, notes: "", created_at: 1 }).kind).toBe("product");
+  });
+  it("normalizeKind：只认 creative，其余（缺省/非法/大小写/类型）归 product（默认拒绝）", () => {
+    expect(normalizeKind("creative")).toBe("creative");
+    expect(normalizeKind("product")).toBe("product");
+    expect(normalizeKind("")).toBe("product");
+    expect(normalizeKind(null)).toBe("product");
+    expect(normalizeKind(undefined)).toBe("product");
+    expect(normalizeKind("CREATIVE")).toBe("product");   // 大小写敏感
+    expect(normalizeKind("creative ")).toBe("product");  // 不 trim
+    expect(normalizeKind(123)).toBe("product");
   });
 });

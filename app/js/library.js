@@ -51,7 +51,7 @@ window.RD = window.RD || {};
     applyRoleUI();
   }
   function hideAllViews() {
-    ["#view-home", "#view-library", "#view-account", "#view-reqform", "#view-reqmulti"].forEach((s) => { const e = $(s); if (e) e.hidden = true; });
+    ["#view-home", "#view-library", "#view-creative", "#view-account", "#view-reqform", "#view-reqmulti"].forEach((s) => { const e = $(s); if (e) e.hidden = true; });
     $("#selbar").hidden = true;
   }
   function showLogin() { $("#loginScreen").hidden = false; hideAllViews(); $("#userBox").hidden = true; }
@@ -79,6 +79,7 @@ window.RD = window.RD || {};
     let cleared = true;
     try { await api.logout(); } catch (_) { cleared = false; }
     state.me = null; state.items = []; state.selected.clear(); state.selectMode = false;
+    if (L.creative && L.creative.reset) L.creative.reset();  // 创意状态也清，防共享设备换人看到旧缓存
     $("#loginName").value = "";
     showLogin();
     if (!cleared) toast("登出请求失败，请刷新确认或关闭浏览器", true);
@@ -92,7 +93,8 @@ window.RD = window.RD || {};
     $("#loginPw").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
     $("#btnLogout").addEventListener("click", doLogout);
     $("#btnAccount").addEventListener("click", () => setView("account"));
-    $("#btnUpload").addEventListener("click", () => L.upload.open());
+    $("#btnUpload").addEventListener("click", () => L.upload.open("product"));
+    $("#btnUploadCreative").addEventListener("click", () => L.upload.open("creative"));
     $("#btnOpenLibrary").addEventListener("click", () => setView("library"));
     $("#btnBackHome").addEventListener("click", () => setView("home"));
     $("#btnBackHome2").addEventListener("click", () => setView("home"));
@@ -109,8 +111,9 @@ window.RD = window.RD || {};
     L.detail.initEvents();
     L.account.initEvents();
     if (L.gallery.initEvents) L.gallery.initEvents();
+    if (L.creative && L.creative.initEvents) L.creative.initEvents();
 
-    api.onUnauth(() => { state.me = null; showLogin(); });
+    api.onUnauth(() => { state.me = null; if (L.creative && L.creative.reset) L.creative.reset(); showLogin(); });
     boot();
   }
 

@@ -29,7 +29,8 @@
 
     const selRow = el("div", "filter-row");
     const catSel = el("select", "filter-select"); catSel.appendChild(opt("", "全部分类"));
-    (state.config.categories || []).forEach((c) => catSel.appendChild(opt(c.name, c.name)));
+    // 产品灵感库只列产品分类（创意分类归创意灵感库，别混进选品筛选）。
+    (state.config.categories || []).filter((c) => c.kind === "product").forEach((c) => catSel.appendChild(opt(c.name, c.name)));
     catSel.value = state.filterCategory;
     catSel.addEventListener("change", () => { state.filterCategory = catSel.value; afterFilterChange(); });
 
