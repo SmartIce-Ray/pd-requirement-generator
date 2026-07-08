@@ -38,6 +38,7 @@ window.RD = window.RD || {};
       const qs = new URLSearchParams();
       if (filters.brand) qs.set("brand", filters.brand);
       if (filters.category) qs.set("category", filters.category);
+      if (filters.cuisine) qs.set("cuisine", filters.cuisine);
       if (filters.uploader) qs.set("uploader", filters.uploader);
       if (filters.kind) qs.set("kind", filters.kind);
       const q = qs.toString();

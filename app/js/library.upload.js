@@ -48,10 +48,18 @@
     catSel.addEventListener("change", updateUploadState);
     const notes = el("textarea"); notes.rows = 2; notes.placeholder = "想法 / 灵感（可空）";
     const brandLabel = state.uploadKind === "creative" ? "品牌（可选，可多选）" : "品牌（必选，可多选）";
-    right.append(fieldLabel(brandLabel), bp, fieldLabel("分类（必选）"), catSel, notes);
+    right.append(fieldLabel(brandLabel), bp, fieldLabel("分类（必选）"), catSel);
+    // 菜系（可留空的第三个轴）——只在产品灵感库出现，创意库不涉及菜系。
+    let cuiSel = null;
+    if (state.uploadKind === "product") {
+      cuiSel = el("select"); cuiSel.appendChild(opt("", "菜系（可留空）"));
+      (state.config.cuisines || []).forEach((c) => cuiSel.appendChild(opt(c.name, c.name)));
+      right.append(fieldLabel("菜系（可留空）"), cuiSel);
+    }
+    right.append(notes);
     card.append(thumbWrap, right);
     $("#upList").appendChild(card);
-    const obj = { dataURL: "", w: 0, h: 0, el: card, thumb, brandsEl: bp, catEl: catSel, notesEl: notes };
+    const obj = { dataURL: "", w: 0, h: 0, el: card, thumb, brandsEl: bp, catEl: catSel, cuiEl: cuiSel, notesEl: notes };
     del.addEventListener("click", () => { card.remove(); state.upCards = state.upCards.filter((c) => c !== obj); updateUploadState(); });
     state.upCards.push(obj);
     return obj;
@@ -93,6 +101,7 @@
       fd.append("image", dataURLtoBlob(c.dataURL), "inspiration.jpg");
       fd.append("brands", JSON.stringify(pickedBrands(c.brandsEl)));
       fd.append("category", c.catEl.value || "");
+      if (c.cuiEl) fd.append("cuisine", c.cuiEl.value || "");
       fd.append("notes", c.notesEl.value || "");
       fd.append("kind", kind);
       try { await api.create(fd); done++; }

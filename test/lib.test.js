@@ -6,6 +6,7 @@ import {
 import { hashPassword, verifyPassword } from "../functions/_lib/passwords.js";
 import { requireAdmin, isOwnerOrAdmin, getUser } from "../functions/_lib/access.js";
 import { validateBrands, buildListQuery, parseRow, normalizeKind } from "../functions/_lib/query.js";
+import { validateCuisine, CUISINE_NAMES } from "../functions/_lib/cuisines.js";
 
 describe("genId", () => {
   it("生成 22 位 base62", () => {
@@ -173,9 +174,9 @@ describe("query", () => {
     expect(params).toEqual(["creative", '%"野百灵"%', "设计视觉", "usr_x"]);
   });
   it("parseRow 带 uploader、不外泄 image_key", () => {
-    const row = { id: "x", image_key: "x", image_type: "image/jpeg", brands: '["野百灵"]', category: "菜品", notes: "hi", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" };
+    const row = { id: "x", image_key: "x", image_type: "image/jpeg", brands: '["野百灵"]', category: "菜品", cuisine: "中餐", notes: "hi", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" };
     const out = parseRow(row);
-    expect(out).toEqual({ id: "x", image_type: "image/jpeg", brands: ["野百灵"], category: "菜品", notes: "hi", kind: "product", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" });
+    expect(out).toEqual({ id: "x", image_type: "image/jpeg", brands: ["野百灵"], category: "菜品", cuisine: "中餐", notes: "hi", kind: "product", created_at: 123, uploader_id: "usr_a", uploader_name: "Ray" });
     expect(out.image_key).toBeUndefined();
   });
   it("parseRow 容错坏 JSON + 空 uploader", () => {
@@ -197,5 +198,30 @@ describe("query", () => {
     expect(normalizeKind("CREATIVE")).toBe("product");   // 大小写敏感
     expect(normalizeKind("creative ")).toBe("product");  // 不 trim
     expect(normalizeKind(123)).toBe("product");
+  });
+  it("validateCuisine：白名单内返回原名，非法/空/类型不符归 null（可留空）", () => {
+    expect(validateCuisine("中餐")).toBe("中餐");
+    expect(validateCuisine("日料")).toBe("日料");
+    expect(validateCuisine("川菜")).toBeNull();   // 不在白名单
+    expect(validateCuisine("")).toBeNull();
+    expect(validateCuisine(null)).toBeNull();
+    expect(validateCuisine(undefined)).toBeNull();
+    expect(validateCuisine(123)).toBeNull();
+    expect(validateCuisine("中餐 ")).toBeNull();  // 不 trim，精确匹配
+    expect(CUISINE_NAMES).toContain("中餐");
+  });
+  it("buildListQuery 菜系分支：i.cuisine = ?，占位符在 category 之后 uploader 之前", () => {
+    const { sql, params } = buildListQuery({ category: "菜品", cuisine: "中餐", uploader: "usr_x" });
+    expect(sql).toContain("WHERE i.category = ? AND i.cuisine = ? AND i.uploader_id = ?");
+    expect(params).toEqual(["菜品", "中餐", "usr_x"]);
+  });
+  it("buildListQuery 五筛选全开：菜系并入 WHERE 与 params 严格同序", () => {
+    const { sql, params } = buildListQuery({ kind: "product", brand: "野百灵", category: "菜品", cuisine: "西餐", uploader: "usr_x" });
+    expect(sql).toContain("WHERE i.kind = ? AND i.brands LIKE ? AND i.category = ? AND i.cuisine = ? AND i.uploader_id = ?");
+    expect(params).toEqual(["product", '%"野百灵"%', "菜品", "西餐", "usr_x"]);
+  });
+  it("parseRow 带出 cuisine；缺省/空归 null", () => {
+    expect(parseRow({ id: "x", brands: "[]", category: null, cuisine: "日料", notes: "", created_at: 1 }).cuisine).toBe("日料");
+    expect(parseRow({ id: "y", brands: "[]", category: null, notes: "", created_at: 1 }).cuisine).toBeNull();
   });
 });

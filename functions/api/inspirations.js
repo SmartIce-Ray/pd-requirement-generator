@@ -3,6 +3,7 @@ import { json, fail, guard } from "../_lib/respond.js";
 import { genId } from "../_lib/ids.js";
 import { validateBrands, buildListQuery, parseRow, normalizeKind } from "../_lib/query.js";
 import { BRAND_NAMES } from "../_lib/brands.js";
+import { validateCuisine, CUISINE_NAMES } from "../_lib/cuisines.js";
 import { getUser } from "../_lib/access.js";
 
 // 严格图片白名单（排除 SVG —— 可内嵌脚本，储存型 XSS 向量）。
@@ -15,10 +16,12 @@ export async function onRequestGet(context) {
     const brandRaw = url.searchParams.get("brand") || "";
     const brand = BRAND_NAMES.includes(brandRaw) ? brandRaw : "";
     const category = url.searchParams.get("category") || "";
+    const cuisineRaw = url.searchParams.get("cuisine") || "";
+    const cuisine = CUISINE_NAMES.includes(cuisineRaw) ? cuisineRaw : "";
     const uploader = url.searchParams.get("uploader") || "";
     // 用途 kind：缺省/非法一律归 product（normalizeKind 默认拒绝）—— 旧缓存 JS 不带 kind 也只看到产品图，绝不把创意漏进选品。
     const kind = normalizeKind(url.searchParams.get("kind"));
-    const { sql, params } = buildListQuery({ brand, category, uploader, kind });
+    const { sql, params } = buildListQuery({ brand, category, cuisine, uploader, kind });
     const res = await env.DB.prepare(sql).bind(...params).all();
     return json({ items: (res.results || []).map(parseRow) });
   });
@@ -46,6 +49,8 @@ export async function onRequestPost(context) {
     // 用 != null（非真值判断），否则单字符 "0" 之类会被当空丢弃。
     const category = categoryRaw != null && String(categoryRaw) !== "" ? String(categoryRaw) : null;
     if (!category) return fail("请选择分类", 400);
+    // 菜系：可留空的第三个轴；非法 / 空 → null（不做必填校验）。
+    const cuisine = validateCuisine(form.get("cuisine"));
 
     const brands = JSON.stringify(brandList);
     const notes = form.get("notes") != null ? String(form.get("notes")) : "";
@@ -58,8 +63,8 @@ export async function onRequestPost(context) {
     const uploaderId = user ? user.uid : null;
     try {
       await env.DB.prepare(
-        "INSERT INTO inspirations (id, image_key, image_type, brands, category, notes, created_at, uploader_id, kind) VALUES (?,?,?,?,?,?,?,?,?)"
-      ).bind(id, id, imageType, brands, category, notes, created_at, uploaderId, kind).run();
+        "INSERT INTO inspirations (id, image_key, image_type, brands, category, notes, created_at, uploader_id, kind, cuisine) VALUES (?,?,?,?,?,?,?,?,?,?)"
+      ).bind(id, id, imageType, brands, category, notes, created_at, uploaderId, kind, cuisine).run();
     } catch (e) {
       // D1 失败：记录真因 + 回滚已写入的 R2 对象（回滚失败也留痕，孤儿 key 是清理唯一线索）。
       console.error("inspiration_insert_failed", id, String((e && e.stack) || e));
@@ -70,7 +75,7 @@ export async function onRequestPost(context) {
     }
     return json({
       item: parseRow({
-        id, image_type: imageType, brands, category, notes, kind, created_at,
+        id, image_type: imageType, brands, category, cuisine, notes, kind, created_at,
         uploader_id: uploaderId, uploader_name: user ? user.name : null,
       }),
     }, 201);

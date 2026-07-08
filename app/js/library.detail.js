@@ -34,6 +34,17 @@
     sel.value = it.category || "";
     body.appendChild(sel);
 
+    // 菜系（可留空）——仅产品条目；创意不涉及菜系。
+    if ((it.kind || "product") !== "creative") {
+      body.appendChild(fieldLabel("菜系（可留空）"));
+      const cuiSel = el("select"); cuiSel.id = "detailCuisine"; cuiSel.appendChild(opt("", "（不限 / 暂不标）"));
+      (state.config.cuisines || []).forEach((c) => cuiSel.appendChild(opt(c.name, c.name)));
+      // 兼容历史：当前菜系已不在清单时仍保留可选
+      if (it.cuisine && !(state.config.cuisines || []).some((c) => c.name === it.cuisine)) cuiSel.appendChild(opt(it.cuisine, it.cuisine));
+      cuiSel.value = it.cuisine || "";
+      body.appendChild(cuiSel);
+    }
+
     body.appendChild(fieldLabel("想法"));
     const ta = el("textarea"); ta.id = "detailNotes"; ta.rows = 3; ta.value = it.notes || "";
     body.appendChild(ta);
@@ -55,6 +66,8 @@
     if (!creative && !brands.length) { toast("品牌不能为空", true); return; }  // 创意品牌可空
     if (!category) { toast("请选择分类", true); return; }
     const patch = { brands, category, notes: $("#detailNotes").value };
+    const cuiEl = $("#detailCuisine");
+    if (cuiEl) patch.cuisine = cuiEl.value;  // 产品条目才有菜系；空串 → 后端归 null（清空）
     const btn = $("#detailSave"); btn.disabled = true;
     try { await api.update(it.id, patch); closeModal("#detailModal"); toast("已保存"); reloadBoard(it); }
     catch (e) { toast(e.message || "保存失败", true); if (e.status === 404) { closeModal("#detailModal"); reloadBoard(it); } }

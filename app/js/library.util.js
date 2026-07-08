@@ -15,6 +15,7 @@ window.RD.lib = (function () {
     selected: new Map(),      // id -> item
     filterBrand: "",
     filterCategory: "",
+    filterCuisine: "",
     filterUploader: "",
     upCards: [],
     uploadKind: "product",    // 当前上传弹窗用途：product | creative
@@ -70,6 +71,7 @@ window.RD.lib = (function () {
     const tags = el("div", "tags");
     (it.brands || []).forEach((b) => tags.appendChild(el("span", "tag", b)));
     if (it.category) tags.appendChild(el("span", "tag cat", it.category));
+    if (it.cuisine) tags.appendChild(el("span", "tag cuisine", it.cuisine));
     meta.appendChild(tags);
     if (opts.showUploader) meta.appendChild(el("div", "card-uploader", it.uploader_name || "（已删除）"));
     if (it.notes) meta.appendChild(el("div", "note", it.notes));

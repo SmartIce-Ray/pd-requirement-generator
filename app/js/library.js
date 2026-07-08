@@ -46,7 +46,7 @@ window.RD = window.RD || {};
 
   // ---------- 鉴权 ----------
   function applyConfig(cfg) {
-    state.config = { brands: cfg.brands || [], categories: cfg.categories || [] };
+    state.config = { brands: cfg.brands || [], categories: cfg.categories || [], cuisines: cfg.cuisines || [] };
     state.me = cfg.me || null;
     applyRoleUI();
   }
