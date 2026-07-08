@@ -1,7 +1,7 @@
 // 上传：先囤后理——倒图后逐张打标，「品牌+分类」必填才能入库（前端拦，后端再拦）。
 (function () {
   const L = window.RD.lib;
-  const { $, $$, state, el, toast, brandOpt, pickedBrands, opt, openModal, closeModal, bindModalClose, dataURLtoBlob, fieldLabel } = L;
+  const { $, $$, state, el, toast, brandOpt, pickedBrands, buildSingleChips, pickedChip, opt, openModal, closeModal, bindModalClose, dataURLtoBlob, fieldLabel } = L;
   const api = L.api;
 
   function cardComplete(c) {
@@ -43,15 +43,23 @@
     const bp = el("div", "brand-picker");
     (state.config.brands || []).forEach((b) => bp.appendChild(brandOpt(b.name, false)));
     $$(".brand-opt", bp).forEach((x) => (x._onToggle = updateUploadState));
+    // 菜系（可留空的第三个轴）——胶囊单选，紧跟品牌下面；只在产品灵感库出现，创意库不涉及菜系。
+    let cuiEl = null;
+    if (state.uploadKind === "product") {
+      cuiEl = el("div", "brand-picker");
+      buildSingleChips(cuiEl, (state.config.cuisines || []).map((c) => c.name), "", updateUploadState);
+    }
     const catSel = el("select"); catSel.appendChild(opt("", "请选择分类"));
     (state.config.categories || []).filter((c) => c.kind === state.uploadKind).forEach((c) => catSel.appendChild(opt(c.name, c.name)));
     catSel.addEventListener("change", updateUploadState);
     const notes = el("textarea"); notes.rows = 2; notes.placeholder = "想法 / 灵感（可空）";
     const brandLabel = state.uploadKind === "creative" ? "品牌（可选，可多选）" : "品牌（必选，可多选）";
-    right.append(fieldLabel(brandLabel), bp, fieldLabel("分类（必选）"), catSel, notes);
+    right.append(fieldLabel(brandLabel), bp);
+    if (cuiEl) right.append(fieldLabel("菜系（可留空 · 单选）"), cuiEl);
+    right.append(fieldLabel("分类（必选）"), catSel, notes);
     card.append(thumbWrap, right);
     $("#upList").appendChild(card);
-    const obj = { dataURL: "", w: 0, h: 0, el: card, thumb, brandsEl: bp, catEl: catSel, notesEl: notes };
+    const obj = { dataURL: "", w: 0, h: 0, el: card, thumb, brandsEl: bp, catEl: catSel, cuiEl, notesEl: notes };
     del.addEventListener("click", () => { card.remove(); state.upCards = state.upCards.filter((c) => c !== obj); updateUploadState(); });
     state.upCards.push(obj);
     return obj;
@@ -93,6 +101,7 @@
       fd.append("image", dataURLtoBlob(c.dataURL), "inspiration.jpg");
       fd.append("brands", JSON.stringify(pickedBrands(c.brandsEl)));
       fd.append("category", c.catEl.value || "");
+      if (c.cuiEl) fd.append("cuisine", pickedChip(c.cuiEl));
       fd.append("notes", c.notesEl.value || "");
       fd.append("kind", kind);
       try { await api.create(fd); done++; }

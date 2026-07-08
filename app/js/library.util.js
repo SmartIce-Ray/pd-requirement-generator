@@ -15,6 +15,7 @@ window.RD.lib = (function () {
     selected: new Map(),      // id -> item
     filterBrand: "",
     filterCategory: "",
+    filterCuisine: "",
     filterUploader: "",
     upCards: [],
     uploadKind: "product",    // 当前上传弹窗用途：product | creative
@@ -52,6 +53,21 @@ window.RD.lib = (function () {
   }
   function pickedBrands(container) { return $$(".brand-opt.sel", container).map((b) => b.dataset.name).filter(Boolean); }
 
+  // 单选胶囊组（菜系用）：点一个自动取消其它，可全不选＝留空。names=名字数组，current=当前选中名，onPick=每次变动回调。
+  function buildSingleChips(container, names, current, onPick) {
+    (names || []).forEach((name) => {
+      const chip = brandOpt(name, name === current);
+      chip._onToggle = (on) => {
+        if (on) $$(".brand-opt", container).forEach((x) => {
+          if (x !== chip && x.classList.contains("sel")) { x.classList.remove("sel"); x.setAttribute("aria-pressed", "false"); }
+        });
+        if (onPick) onPick();
+      };
+      container.appendChild(chip);
+    });
+  }
+  function pickedChip(container) { const s = $(".brand-opt.sel", container); return s ? s.dataset.name : ""; }
+
   function openModal(sel) { $(sel).hidden = false; }
   function closeModal(sel) { $(sel).hidden = true; }
   function bindModalClose(sel) { $$(`${sel} [data-close]`).forEach((e) => e.addEventListener("click", () => closeModal(sel))); }
@@ -70,6 +86,7 @@ window.RD.lib = (function () {
     const tags = el("div", "tags");
     (it.brands || []).forEach((b) => tags.appendChild(el("span", "tag", b)));
     if (it.category) tags.appendChild(el("span", "tag cat", it.category));
+    if (it.cuisine) tags.appendChild(el("span", "tag cuisine", it.cuisine));
     meta.appendChild(tags);
     if (opts.showUploader) meta.appendChild(el("div", "card-uploader", it.uploader_name || "（已删除）"));
     if (it.notes) meta.appendChild(el("div", "note", it.notes));
@@ -121,7 +138,7 @@ window.RD.lib = (function () {
 
   Object.assign(L, {
     api, $, $$, state, el, fmtDate, fieldLabel, opt, toast, dataURLtoBlob,
-    brandOpt, pickedBrands, openModal, closeModal, bindModalClose,
+    brandOpt, pickedBrands, buildSingleChips, pickedChip, openModal, closeModal, bindModalClose,
     isAdmin, galleryCard, setView, loadData,
   });
   return L;

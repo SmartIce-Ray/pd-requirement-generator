@@ -16,6 +16,9 @@
 .playwright-mcp/
 .claude/
 
+# AI 工具本地镜像（部分工具读 AGENTS.md）——CLAUDE.md 是真源，此文件不进仓库
+AGENTS.md
+
 # Node / wrangler
 node_modules/
 .wrangler/

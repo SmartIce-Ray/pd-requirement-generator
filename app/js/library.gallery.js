@@ -11,6 +11,7 @@
   function matchFilter(it) {
     if (state.filterBrand && !(it.brands || []).includes(state.filterBrand)) return false;
     if (state.filterCategory && it.category !== state.filterCategory) return false;
+    if (state.filterCuisine && it.cuisine !== state.filterCuisine) return false;
     if (state.filterUploader && it.uploader_id !== state.filterUploader) return false;
     return true;
   }
@@ -34,12 +35,17 @@
     catSel.value = state.filterCategory;
     catSel.addEventListener("change", () => { state.filterCategory = catSel.value; afterFilterChange(); });
 
+    const cuiSel = el("select", "filter-select"); cuiSel.appendChild(opt("", "全部菜系"));
+    (state.config.cuisines || []).forEach((c) => cuiSel.appendChild(opt(c.name, c.name)));
+    cuiSel.value = state.filterCuisine;
+    cuiSel.addEventListener("change", () => { state.filterCuisine = cuiSel.value; afterFilterChange(); });
+
     const upSel = el("select", "filter-select"); upSel.appendChild(opt("", "全部上传人"));
     uploaderOptions().forEach((u) => upSel.appendChild(opt(u.id, u.name)));
     upSel.value = state.filterUploader;
     upSel.addEventListener("change", () => { state.filterUploader = upSel.value; afterFilterChange(); });
 
-    selRow.append(catSel, upSel);
+    selRow.append(catSel, cuiSel, upSel);
     bar.appendChild(selRow);
   }
 

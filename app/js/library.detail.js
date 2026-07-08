@@ -1,7 +1,7 @@
 // 选品详情：看图 + 改标签。归属——admin 全权；采集员仅能改/删自己的（非本人只读，后端再校验）。
 (function () {
   const L = window.RD.lib;
-  const { $, state, el, fieldLabel, opt, brandOpt, pickedBrands, openModal, closeModal, bindModalClose, toast, isAdmin } = L;
+  const { $, state, el, fieldLabel, opt, brandOpt, pickedBrands, buildSingleChips, pickedChip, openModal, closeModal, bindModalClose, toast, isAdmin } = L;
   const api = L.api;
 
   function isOwner(it) { return isAdmin() || !!(state.me && it.uploader_id && it.uploader_id === state.me.uid); }
@@ -23,6 +23,17 @@
     const bp = el("div", "brand-picker"); bp.id = "detailBrands";
     (state.config.brands || []).forEach((b) => bp.appendChild(brandOpt(b.name, (it.brands || []).includes(b.name))));
     body.appendChild(bp);
+
+    // 菜系（可留空 · 单选胶囊）——紧跟品牌下面；仅产品条目，创意不涉及菜系。
+    if ((it.kind || "product") !== "creative") {
+      body.appendChild(fieldLabel("菜系（可留空 · 单选）"));
+      const cui = el("div", "brand-picker"); cui.id = "detailCuisine";
+      const cuiNames = (state.config.cuisines || []).map((c) => c.name);
+      // 兼容历史：当前菜系不在清单时补一个可选 chip
+      if (it.cuisine && !cuiNames.includes(it.cuisine)) cuiNames.push(it.cuisine);
+      buildSingleChips(cui, cuiNames, it.cuisine || "", null);
+      body.appendChild(cui);
+    }
 
     body.appendChild(fieldLabel("分类"));
     const sel = el("select"); sel.id = "detailCat"; sel.appendChild(opt("", "请选择分类"));
@@ -55,6 +66,8 @@
     if (!creative && !brands.length) { toast("品牌不能为空", true); return; }  // 创意品牌可空
     if (!category) { toast("请选择分类", true); return; }
     const patch = { brands, category, notes: $("#detailNotes").value };
+    const cuiEl = $("#detailCuisine");
+    if (cuiEl) patch.cuisine = pickedChip(cuiEl);  // 产品条目才有菜系；空 → 后端归 null（清空）
     const btn = $("#detailSave"); btn.disabled = true;
     try { await api.update(it.id, patch); closeModal("#detailModal"); toast("已保存"); reloadBoard(it); }
     catch (e) { toast(e.message || "保存失败", true); if (e.status === 404) { closeModal("#detailModal"); reloadBoard(it); } }

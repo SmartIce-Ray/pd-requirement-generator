@@ -18,12 +18,13 @@ export function normalizeKind(x) {
 
 // 构建总览列表查询（参数化，防注入）。LEFT JOIN users 取上传人名
 // （账号被删后为 NULL → 前端显示「已删除」）。筛选维度：用途 kind / 品牌 / 分类 / 上传人。
-export function buildListQuery({ brand, category, uploader, kind } = {}) {
+export function buildListQuery({ brand, category, cuisine, uploader, kind } = {}) {
   const where = [];
   const params = [];
   if (kind) { where.push("i.kind = ?"); params.push(kind); }
   if (brand) { where.push("i.brands LIKE ?"); params.push(`%"${brand}"%`); }
   if (category) { where.push("i.category = ?"); params.push(category); }
+  if (cuisine) { where.push("i.cuisine = ?"); params.push(cuisine); }
   if (uploader) { where.push("i.uploader_id = ?"); params.push(uploader); }
   const sql =
     "SELECT i.*, u.name AS uploader_name FROM inspirations i " +
@@ -42,6 +43,7 @@ export function parseRow(row) {
     image_type: row.image_type,
     brands,
     category: row.category,
+    cuisine: row.cuisine || null,
     notes: row.notes,
     kind: row.kind || "product",
     created_at: row.created_at,

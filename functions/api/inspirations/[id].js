@@ -2,6 +2,7 @@
 // 归属校验：admin 全权；采集员仅限自己上传的（否则 403）。品牌/分类已入库即不可清空。
 import { json, fail, guard } from "../../_lib/respond.js";
 import { validateBrands, parseRow } from "../../_lib/query.js";
+import { validateCuisine } from "../../_lib/cuisines.js";
 import { getUser, isOwnerOrAdmin } from "../../_lib/access.js";
 
 export async function onRequestPatch(context) {
@@ -28,6 +29,10 @@ export async function onRequestPatch(context) {
     if (body.category !== undefined) {
       if (!body.category) return fail("分类不能清空", 400);
       sets.push("category = ?"); vals.push(String(body.category));
+    }
+    // 菜系可留空：非法 / 空 → null（允许清空，与 category 不同）。
+    if (body.cuisine !== undefined) {
+      sets.push("cuisine = ?"); vals.push(validateCuisine(body.cuisine));
     }
     if (body.notes !== undefined) { sets.push("notes = ?"); vals.push(String(body.notes)); }
     if (!sets.length) return fail("无可更新字段", 400);
