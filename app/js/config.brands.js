@@ -5,6 +5,7 @@ window.RD.brands = [
   { id: "yebailing",   name: "野百灵" },
   { id: "feihua",      name: "飞花小馆" },
   { id: "banglanpu",   name: "邦兰埔" },
+  { id: "huayuwei",    name: "华与味" },
 ];
 // 视觉统一走 M 暖米石墨主色 terracotta，不给每品牌单独配色（规范统一）。
 window.RD.accent = "#C15F3C";
